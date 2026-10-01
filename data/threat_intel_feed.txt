@@ -1,0 +1,1 @@
+2026-10-01 14:24:16 | 185.220.101.5 | REASON: Automated Brute Force Mitigation | ACTION: DROP

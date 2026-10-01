@@ -1,0 +1,14 @@
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "123456", "timestamp": "2026-10-01T07:23:41.048911+00:00"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "admin", "timestamp": "2026-10-01T07:23:41.349724+00:00"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "password", "timestamp": "2026-10-01T07:23:41.651467+00:00"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "root123", "timestamp": "2026-10-01T07:23:41.954098+00:00"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "qwerty", "timestamp": "2026-10-01T07:23:42.267456+00:00"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "toor", "timestamp": "2026-10-01T07:23:42.569299+00:00"}
+{"eventid": "cowrie.login.success", "src_ip": "45.33.32.156", "username": "root", "password": "password123", "session": "sess_9942a", "timestamp": "2026-10-01T07:23:43.871295+00:00"}
+{"eventid": "cowrie.command.input", "src_ip": "45.33.32.156", "session": "sess_9942a", "input": "whoami", "timestamp": "2026-10-01T07:23:44.372712+00:00"}
+{"eventid": "cowrie.command.input", "src_ip": "45.33.32.156", "session": "sess_9942a", "input": "uname -a", "timestamp": "2026-10-01T07:23:44.674322+00:00"}
+{"eventid": "cowrie.command.input", "src_ip": "45.33.32.156", "session": "sess_9942a", "input": "cat /proc/cpuinfo", "timestamp": "2026-10-01T07:23:44.975694+00:00"}
+{"eventid": "cowrie.command.input", "src_ip": "45.33.32.156", "session": "sess_9942a", "input": "ps aux", "timestamp": "2026-10-01T07:23:45.276914+00:00"}
+{"eventid": "cowrie.login.success", "src_ip": "103.20.144.12", "username": "admin", "password": "admin", "session": "sess_honey_881", "timestamp": "2026-10-01T07:23:46.578671+00:00"}
+{"eventid": "cowrie.command.input", "src_ip": "103.20.144.12", "session": "sess_honey_881", "input": "cat /root/.aws/credentials", "timestamp": "2026-10-01T07:23:47.080184+00:00"}
+{"eventid": "cowrie.session.file_download", "src_ip": "194.87.139.12", "session": "sess_drop_772", "url": "http://194.87.139.12/mirai_payload.sh", "outfile": "C:\\Users\\ghaob\\soc-honeynet-active-defense\\data\\downloads\\mirai_payload.sh", "shasum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "timestamp": "2026-10-01T07:23:48.082663+00:00"}
