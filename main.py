@@ -88,6 +88,7 @@ class MiniSOCActiveDefenseOrchestrator:
                     port=self.honeypot_port,
                     log_file=cowrie_log_path,
                     soar_enforcer=self.enforcer,
+                    event_callback=self.on_cowrie_event,
                 )
             except Exception as e:
                 print(f"[!] Không thể khởi tạo SSH Honeypot trên port {self.honeypot_port}: {e}")

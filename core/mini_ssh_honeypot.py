@@ -29,14 +29,17 @@ class HoneypotSSHServer(paramiko.ServerInterface):
         self.session_id = f"sess_{int(time.time() * 1000) % 100000}"
 
     def check_auth_password(self, username, password):
+        print(f"\n[*] [SSH Honeypot] Attacker IP {self.client_ip} vừa thử đăng nhập | User: '{username}' | Password: '{password}'")
+
         # Kiểm tra xem IP có đang bị SOAR Firewall chặn không
         if self.is_ip_blocked_func(self.client_ip):
-            print(f"[-] [SSH Honeypot] Từ chối IP {self.client_ip} do đang nằm trong danh sách chặn SOAR Firewall!")
+            print(f"[-] [SSH Honeypot] TỪ CHỐI IP {self.client_ip} do đang bị SOAR Firewall khóa cứng!")
             return paramiko.AUTH_FAILED
 
         # Chấp nhận một số mật khẩu phổ biến để hacker vào bẫy, các mật khẩu khác tính là thất bại (brute force)
         acceptable_passwords = ["root", "123456", "password", "admin", "toor", "root123", "12345"]
         if password in acceptable_passwords or username in ("root", "admin", "ubuntu"):
+            print(f"[+] [SSH Honeypot] Đăng nhập THÀNH CÔNG (Cấp shell giả lập cho IP {self.client_ip})")
             self.authenticated_user = username
             self.log_callback({
                 "eventid": "cowrie.login.success",
@@ -48,6 +51,7 @@ class HoneypotSSHServer(paramiko.ServerInterface):
             })
             return paramiko.AUTH_SUCCESSFUL
         else:
+            print(f"[-] [SSH Honeypot] Đăng nhập THẤT BẠI cho IP {self.client_ip} (Ghi nhận hành vi Brute Force)")
             self.log_callback({
                 "eventid": "cowrie.login.failed",
                 "src_ip": self.client_ip,
@@ -71,11 +75,12 @@ class HoneypotSSHServer(paramiko.ServerInterface):
 
 
 class MiniSSHHoneypot:
-    def __init__(self, host: str = "0.0.0.0", port: int = 2222, log_file: str = "./data/cowrie.json", soar_enforcer=None):
+    def __init__(self, host: str = "0.0.0.0", port: int = 2222, log_file: str = "./data/cowrie.json", soar_enforcer=None, event_callback=None):
         self.host = host
         self.port = port
         self.log_file = log_file
         self.soar_enforcer = soar_enforcer
+        self.event_callback = event_callback
         self.is_running = False
         self.server_socket: Optional[socket.socket] = None
         self._thread: Optional[threading.Thread] = None
@@ -101,7 +106,7 @@ class MiniSSHHoneypot:
         return False
 
     def log_event(self, event: dict):
-        """Ghi sự kiện vào file cowrie.json chuẩn format."""
+        """Ghi sự kiện vào file cowrie.json chuẩn format và gọi callback lập tức."""
         try:
             os.makedirs(os.path.dirname(os.path.abspath(self.log_file)), exist_ok=True)
             with open(self.log_file, "a", encoding="utf-8") as f:
@@ -110,8 +115,15 @@ class MiniSSHHoneypot:
         except Exception as e:
             print(f"[-] Lỗi ghi log honeypot: {e}")
 
+        if self.event_callback:
+            try:
+                self.event_callback(event)
+            except Exception as e:
+                print(f"[-] Lỗi callback event: {e}")
+
     def handle_client(self, client_socket, addr):
         ip, port = addr
+        print(f"\n[🔌 KẾT NỐI MỚI] Kẻ tấn công từ IP {ip}:{port} vừa kết nối SSH vào Honeypot!")
         if self.is_ip_blocked(ip):
             print(f"[!] [SOAR Active Defense] Phát hiện kết nối từ IP bị chặn Firewall: {ip}. Đóng kết nối lập tức!")
             client_socket.close()
