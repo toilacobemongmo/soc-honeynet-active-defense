@@ -12,8 +12,32 @@ import requests
 
 
 class PayloadAnalyzer:
-    def __init__(self, vt_api_key: Optional[str] = None):
+    def __init__(self, vt_api_key: Optional[str] = None, quarantine_dir: str = "./data/quarantine"):
         self.vt_api_key = vt_api_key
+        self.quarantine_dir = quarantine_dir
+        os.makedirs(self.quarantine_dir, exist_ok=True)
+
+    def quarantine_file(self, file_path: str) -> Optional[str]:
+        """Tự động cách ly mã độc: Chuyển vào thư mục an toàn và tước quyền thực thi (chmod -x)."""
+        if not os.path.exists(file_path):
+            return None
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+            sha256 = hashlib.sha256(data).hexdigest()
+            base = os.path.basename(file_path)
+            q_name = f"{sha256[:12]}_{base}.quarantine"
+            q_path = os.path.join(self.quarantine_dir, q_name)
+            with open(q_path, "wb") as f:
+                f.write(data)
+            # Tước quyền thực thi, chỉ cho phép đọc
+            try:
+                os.chmod(q_path, 0o444)
+            except Exception:
+                pass
+            return q_path
+        except Exception:
+            return None
 
     def analyze_file(self, file_path: str) -> Dict:
         """Phân tích toàn diện file do kẻ tấn công tải lên máy bẫy."""
@@ -27,10 +51,13 @@ class PayloadAnalyzer:
         sha256 = hashlib.sha256(content).hexdigest()
         file_size = len(content)
 
-        # Trích xuất chuỗi tĩnh (Static String Extraction) để tìm IP C2, URL độc hại
+        # Pha 1: Tự động cách ly file
+        quarantined_path = self.quarantine_file(file_path)
+
+        # Pha 2: Trích xuất chuỗi tĩnh (Static String Extraction) để tìm IP C2, URL độc hại
         extracted_iocs = self._extract_static_iocs(content)
 
-        # Tra cứu VirusTotal (nếu có key)
+        # Pha 3: Tra cứu VirusTotal (nếu có key)
         vt_report = self.query_virustotal(sha256)
 
         return {
@@ -38,6 +65,7 @@ class PayloadAnalyzer:
             "file_size_bytes": file_size,
             "md5": md5,
             "sha256": sha256,
+            "quarantined_path": quarantined_path,
             "extracted_iocs": extracted_iocs,
             "virustotal_intel": vt_report,
             "malware_family": vt_report.get("family", "Unknown / Zero-day script"),

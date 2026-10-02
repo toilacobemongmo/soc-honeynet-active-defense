@@ -113,8 +113,25 @@ class MiniSSHHoneypot:
     def handle_client(self, client_socket, addr):
         ip, port = addr
         if self.is_ip_blocked(ip):
-            print(f"[!] [SOAR Active Defense] Phát hiện kết nối từ IP bị chặn: {ip}. Đóng kết nối lập tức!")
+            print(f"[!] [SOAR Active Defense] Phát hiện kết nối từ IP bị chặn Firewall: {ip}. Đóng kết nối lập tức!")
             client_socket.close()
+            return
+
+        # Kiểm tra nếu IP đang bị đưa vào Tarpit giam lỏng
+        if self.soar_enforcer and hasattr(self.soar_enforcer, "is_tarpitted") and self.soar_enforcer.is_tarpitted(ip):
+            print(f"\n[⏳ SOAR TARPIT KÍCH HOẠT] IP {ip} đang bị giam lỏng trong hố Tarpit! Gửi dữ liệu chậm cực độ để làm treo đối phương...")
+            banner = b"SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.4\r\n"
+            try:
+                for byte in banner:
+                    client_socket.send(bytes([byte]))
+                    time.sleep(3)
+                while True:
+                    client_socket.send(b"\r\n")
+                    time.sleep(5)
+            except Exception:
+                pass
+            finally:
+                client_socket.close()
             return
 
         transport = None
@@ -266,16 +283,27 @@ class MiniSSHHoneypot:
             if "aws" in target or "credentials" in target:
                 return (
                     "[default]\r\n"
-                    "aws_access_key_id = AKIAIOSFODNN7EXAMPLE\r\n"
+                    "aws_access_key_id = AKIAIOSFODNN7CANARYAWS\r\n"
                     "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\r\n"
-                    "# Honeytoken Canary Beacon: https://canarytokens.org/tags/terms/381923\r\n"
+                    "# Honeytoken Canary Beacon (HTTP Verification Endpoint):\r\n"
+                    "# http://127.0.0.1:8080/canary/aws_verify?token=canary_aws_8892\r\n"
+                )
+            elif "history" in target:
+                return (
+                    "ls -la\r\n"
+                    "cd /var/backups\r\n"
+                    "cat db_backup.sql\r\n"
+                    "# Download emergency hotfix patch for critical zero-day:\r\n"
+                    "curl -s http://127.0.0.1:8080/canary/patch.sh | bash\r\n"
+                    "history -c\r\n"
                 )
             elif "pass" in target or "backup" in target or "db" in target or "sql" in target:
                 return (
-                    "-- Production Database Backup\r\n"
-                    "CREATE DATABASE production_db;\r\n"
-                    "INSERT INTO users VALUES ('admin', '$2a$12$e8rO2zM4vL1kH...', 'admin@company.internal');\r\n"
-                    "# Honeytoken Canary Beacon: https://canarytokens.org/tags/terms/994102\r\n"
+                    "-- Production Database Backup 2026\r\n"
+                    "CREATE DATABASE enterprise_core;\r\n"
+                    "INSERT INTO users VALUES ('superadmin', '$2a$12$e8rO2zM4vL1kH...', 'admin@corp.internal');\r\n"
+                    "-- Internal Single-Sign-On (SSO) Portal:\r\n"
+                    "-- http://127.0.0.1:8080/canary/db_verify?token=canary_sql_9941\r\n"
                 )
             elif "passwd" in target:
                 return (

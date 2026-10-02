@@ -93,10 +93,15 @@ class SOAREnforcer:
             "details": "Khóa cứng thread quét của đối phương, làm tiêu hao băng thông và bộ nhớ botnet.",
         }
 
+    def is_tarpitted(self, ip: str) -> bool:
+        return ip in self.tarpitted_ips
+
     def unblock_ip(self, ip: str) -> Dict:
         """Mở khóa IP khi hết thời hạn trừng phạt hoặc do Admin thao tác."""
         if ip in self.blocked_ips:
             del self.blocked_ips[ip]
+        if ip in self.tarpitted_ips:
+            self.tarpitted_ips.discard(ip)
 
         if "linux" in self.os_type:
             try:

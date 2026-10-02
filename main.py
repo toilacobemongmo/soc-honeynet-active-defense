@@ -15,6 +15,7 @@ if sys.platform.startswith("win"):
         sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
     except Exception:
         pass
+from core.canary_server import CanaryServer
 from core.correlation_engine import EventCorrelationEngine, ThreatAlert
 from core.cowrie_listener import CowrieLogListener
 from core.honeytoken_manager import HoneytokenManager
@@ -26,11 +27,20 @@ from core.telegram_soar_bot import TelegramSOARBot
 
 
 class MiniSOCActiveDefenseOrchestrator:
-    def __init__(self, config_path: str = "config/config.yaml", enable_honeypot: bool = True, honeypot_port: int = 2222):
+    def __init__(
+        self,
+        config_path: str = "config/config.yaml",
+        enable_honeypot: bool = True,
+        honeypot_port: int = 2222,
+        enable_canary: bool = True,
+        canary_port: int = 8080,
+    ):
         print("[*] Đang khởi động Hệ thống Mini-SOC Active Defense & SOAR...")
         self.config = self._load_config(config_path)
         self.enable_honeypot = enable_honeypot
         self.honeypot_port = honeypot_port
+        self.enable_canary = enable_canary
+        self.canary_port = canary_port
 
         # 1. Khởi tạo Phân hệ Phản ứng Sự cố (SOAR Enforcer)
         whitelist = self.config.get("soar_rules", {}).get("firewall_enforcement", {}).get("whitelist", [])
@@ -82,7 +92,45 @@ class MiniSOCActiveDefenseOrchestrator:
             except Exception as e:
                 print(f"[!] Không thể khởi tạo SSH Honeypot trên port {self.honeypot_port}: {e}")
 
+        # 9. Khởi tạo Cổng Webhook Bẫy Khử ẩn danh Canary Server (Port 8080)
+        self.canary_server = None
+        if self.enable_canary:
+            try:
+                self.canary_server = CanaryServer(
+                    port=self.canary_port,
+                    alert_callback=self.on_canary_event,
+                )
+            except Exception as e:
+                print(f"[!] Không thể khởi tạo Canary Webhook Server trên port {self.canary_port}: {e}")
+
         print("[+] Toàn bộ phân hệ phòng thủ chủ động đã sẵn sàng hoạt động!")
+
+    def on_canary_event(self, event: dict) -> None:
+        """Xử lý khi kẻ tấn công sập bẫy Honeytoken khử ẩn danh."""
+        real_ip = event.get("src_ip", "Unknown")
+        token_type = event.get("token_type", "Honeytoken")
+        user_agent = event.get("user_agent", "Unknown")
+        url = event.get("url", "")
+
+        recon = self.reverse_intel.gather_full_recon(real_ip)
+        alert_dict = {
+            "rule_name": f"Khử ẩn danh thành công: Bẫy Honeytoken bị kích hoạt! ({token_type})",
+            "source_ip": real_ip,
+            "mitre_id": "T1552.001",
+            "mitre_name": "Unsecured Credentials: Real IP De-anonymized",
+            "severity": "CRITICAL",
+            "timestamp": event.get("timestamp"),
+            "details": {
+                "Loại bẫy sập": token_type,
+                "IP Thật của Hacker": real_ip,
+                "Quốc gia/ISP": f"{recon['geo_intel'].get('country')} / {recon['geo_intel'].get('isp')}",
+                "Công cụ Hacker dùng": user_agent,
+                "Điểm độc hại": f"{recon['reputation'].get('abuseConfidenceScore', 0)}% (AbuseIPDB)",
+                "URL bị gọi": url,
+            },
+            "recommended_action": "tarpit_and_block",
+        }
+        self.telegram_bot.send_incident_alert(alert_dict)
 
     def _load_config(self, config_path: str) -> dict:
         if not os.path.exists(config_path):
@@ -172,10 +220,14 @@ class MiniSOCActiveDefenseOrchestrator:
         if self.honeypot:
             self.honeypot.start_background()
 
-        # 2. Khởi động Telegram SOAR Bot
+        # 2. Khởi động Cổng Webhook Khử ẩn danh Canary Server
+        if self.canary_server:
+            self.canary_server.start_background()
+
+        # 3. Khởi động Telegram SOAR Bot
         self.telegram_bot.start_polling()
 
-        # 3. Kích hoạt tự động giả lập tấn công nếu được yêu cầu
+        # 4. Kích hoạt tự động giả lập tấn công nếu được yêu cầu
         if auto_simulate:
             def _async_sim():
                 time.sleep(2.0)
@@ -209,6 +261,8 @@ class MiniSOCActiveDefenseOrchestrator:
         print("    • Bot tương tác Telegram SOAR     : SẴN SÀNG")
         if self.honeypot:
             print(f"    • Live SSH Honeypot tương tác thật: ĐANG LẮNG NGHE PORT {self.honeypot_port} (0.0.0.0:{self.honeypot_port})")
+        if self.canary_server:
+            print(f"    • Cổng Webhook Bẫy Khử ẩn danh    : ĐANG LẮNG NGHE PORT {self.canary_port} (http://0.0.0.0:{self.canary_port})")
         print("-" * 76)
         print("👉 CÁC CÁCH KIỂM THỬ THỰC TẾ (LIVE DEMO) ĐỂ GỬI GIẢNG VIÊN:")
         print(f"   [1] KẾT NỐI SSH THẬT VÀO HONEYPOT (Từ cửa sổ Terminal khác):")
@@ -216,10 +270,13 @@ class MiniSOCActiveDefenseOrchestrator:
         print("       - Nhập sai mật khẩu liên tục (>5 lần) -> SOAR sẽ tự động khóa IP!")
         print("       - Nhập mật khẩu 'root123' để vào shell Ubuntu bẫy mồi:")
         print("         + Gõ: whoami, uname -a, ps aux")
-        print("         + Gõ lệnh bẫy: cat /root/.aws/credentials (Kích hoạt Canary Token)")
-        print("   [2] MỞ GIAO DIỆN WEB SOC DASHBOARD TRỰC QUAN:")
+        print("         + Gõ lệnh xem bẫy: cat /root/.aws/credentials hoặc cat /root/.bash_history")
+        print(f"   [2] TEST KHỬ ẨN DANH HACKER (Canary Honeytoken):")
+        print(f"       Mở trình duyệt hoặc curl link Webhook: curl http://127.0.0.1:{self.canary_port}/canary/patch.sh")
+        print("       -> Màn hình SOAR và Telegram sẽ lập tức lật tẩy Real IP của đối phương!")
+        print("   [3] MỞ GIAO DIỆN WEB SOC DASHBOARD TRỰC QUAN:")
         print("       streamlit run scripts/dashboard.py")
-        print("   [3] HOẶC BẮN LUỒNG GIẢ LẬP TẤN CÔNG RED TEAM:")
+        print("   [4] HOẶC BẮN LUỒNG GIẢ LẬP TẤN CÔNG RED TEAM:")
         print("       python scripts/simulate_attack.py")
         print("=" * 76)
         print("[*] Đang theo dõi sự kiện an ninh... (Nhấn Ctrl+C để dừng)\n")
@@ -230,6 +287,8 @@ class MiniSOCActiveDefenseOrchestrator:
             print("\n[-] Đang dừng hệ thống...")
             if self.honeypot:
                 self.honeypot.stop()
+            if self.canary_server:
+                self.canary_server.stop()
             self.listener.stop()
 
 
@@ -237,6 +296,8 @@ def main():
     parser = argparse.ArgumentParser(description="Hệ thống Mini-SOC Active Defense & SOAR Honeynet")
     parser.add_argument("--port", type=int, default=2222, help="Cổng chạy SSH Honeypot thật (Mặc định: 2222)")
     parser.add_argument("--no-honeypot", action="store_true", help="Tắt Live SSH Honeypot")
+    parser.add_argument("--canary-port", type=int, default=8080, help="Cổng Webhook Khử ẩn danh Canary (Mặc định: 8080)")
+    parser.add_argument("--no-canary", action="store_true", help="Tắt Cổng Webhook Canary")
     parser.add_argument("--no-replay", action="store_true", help="Không đọc lại các dòng log cũ đã có")
     parser.add_argument("--simulate", action="store_true", help="Tự động bắn 4 kịch bản tấn công ngay sau khi khởi động")
     args = parser.parse_args()
@@ -244,6 +305,8 @@ def main():
     orchestrator = MiniSOCActiveDefenseOrchestrator(
         enable_honeypot=not args.no_honeypot,
         honeypot_port=args.port,
+        enable_canary=not args.no_canary,
+        canary_port=args.canary_port,
     )
     orchestrator.run(
         replay_existing=not args.no_replay,
