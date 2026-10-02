@@ -23,9 +23,22 @@ from typing import Dict, List, Optional, Tuple
 import paramiko
 
 
+def get_outbound_ip() -> str:
+    """Tự động xác định địa chỉ IP card mạng của Honeypot để gài vào Honeytokens."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 class VirtualFileSystem:
     """Hệ thống tệp tin ảo trong bộ nhớ mô phỏng Linux VFS chuẩn Cowrie."""
-    def __init__(self):
+    def __init__(self, host_ip: Optional[str] = None):
+        self.host_ip = host_ip or get_outbound_ip()
         self.fs: Dict[str, Dict] = {
             "/": {"type": "dir", "perm": "drwxr-xr-x", "owner": "root", "group": "root"},
             "/bin": {"type": "dir", "perm": "drwxr-xr-x", "owner": "root", "group": "root"},
@@ -66,7 +79,7 @@ class VirtualFileSystem:
                 "aws_access_key_id = AKIAIOSFODNN7CANARYAWS\n"
                 "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n"
                 "# Honeytoken Canary Beacon (HTTP Verification Endpoint):\n"
-                "# http://127.0.0.1:8080/canary/aws_verify?token=canary_aws_8892\n"
+                f"# http://{self.host_ip}:8080/canary/aws_verify?token=canary_aws_8892\n"
                 "region = ap-southeast-1\n"
             ),
         }
@@ -82,7 +95,7 @@ class VirtualFileSystem:
                 "cd /var/backups\n"
                 "cat db_backup.sql\n"
                 "# Download emergency hotfix patch for critical zero-day:\n"
-                "curl -s http://127.0.0.1:8080/canary/patch.sh | bash\n"
+                f"curl -s http://{self.host_ip}:8080/canary/patch.sh | bash\n"
                 "history -c\n"
             ),
         }
@@ -95,7 +108,7 @@ class VirtualFileSystem:
             "INSERT INTO users VALUES ('superadmin', '$2a$12$e8rO2zM4vL1kH...', 'admin@corp.internal');\n"
             "INSERT INTO users VALUES ('db_backup_svc', '$2a$12$9qQ8bV1vP8mK7...', 'svc@corp.internal');\n"
             "-- Internal Single-Sign-On (SSO) Portal:\n"
-            "-- http://127.0.0.1:8080/canary/db_verify?token=canary_sql_9941\n"
+            f"-- http://{self.host_ip}:8080/canary/db_verify?token=canary_sql_9941\n"
         )
         self.fs["/root/db_backup.sql"] = {
             "type": "file",
@@ -361,15 +374,16 @@ class CowrieSessionHandler:
         "mkdir", "rm", "cp", "mv", "echo", "chmod", "curl", "wget", "ifconfig",
         "ip", "netstat", "ss", "history", "clear", "help", "ping", "sudo", "exit",
         "logout", "which", "whereis", "head", "tail", "more", "less", "grep",
+        "nano", "vi", "vim",
     ]
 
-    def __init__(self, channel, client_ip: str, session_id: str, username: str, log_event_func):
+    def __init__(self, channel, client_ip: str, session_id: str, username: str, log_event_func, host_ip: Optional[str] = None):
         self.channel = channel
         self.client_ip = client_ip
         self.session_id = session_id
         self.username = username or "root"
         self.log_event = log_event_func
-        self.vfs = VirtualFileSystem()
+        self.vfs = VirtualFileSystem(host_ip=host_ip)
         self.cwd = "/root"
         self.history: List[str] = []
         self.history_index = 0
@@ -675,6 +689,17 @@ class CowrieSessionHandler:
             return "Reading package lists... Done\r\nBuilding dependency tree... Done\r\nE: Could not get lock /var/lib/dpkg/lock-frontend (Permission denied)\r\n"
         elif base == "git":
             return "fatal: not a git repository (or any of the parent directories): .git\r\n"
+        elif base in ("nano", "vi", "vim"):
+            if not args:
+                return ""
+            target = args[0]
+            resolved = self.vfs.resolve_path(self.cwd, target)
+            if not self.vfs.exists(resolved):
+                return f"[ New File: {target} ]\r\n"
+            if self.vfs.is_dir(resolved):
+                return f"{base}: {target}: Is a directory\r\n"
+            content = self.vfs.read_file(resolved) or ""
+            return content.replace("\n", "\r\n") + "\r\n"
         elif base in ("which", "whereis"):
             target_cmd = args[0] if args else "bash"
             return f"/usr/bin/{target_cmd}\r\n"
@@ -819,12 +844,21 @@ class MiniSSHHoneypot:
                 return
 
             # Khởi tạo phiên làm việc Cowrie Session Handler đầy đủ tính năng
+            target_host_ip = None
+            try:
+                sock_ip = client_socket.getsockname()[0]
+                if sock_ip and sock_ip not in ("0.0.0.0", "127.0.0.1"):
+                    target_host_ip = sock_ip
+            except Exception:
+                pass
+
             session = CowrieSessionHandler(
                 channel=channel,
                 client_ip=ip,
                 session_id=server.session_id,
                 username=server.authenticated_user,
                 log_event_func=self.log_event,
+                host_ip=target_host_ip,
             )
             session.run()
 
