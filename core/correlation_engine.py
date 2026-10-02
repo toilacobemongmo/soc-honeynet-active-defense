@@ -130,9 +130,11 @@ class EventCorrelationEngine:
             cmd = event.get("input", "")
             session_id = event.get("session", "")
 
-            # Kiểm tra xem có đụng vào Honeytoken (Canary Files) không (MITRE T1552)
-            honeytoken_keywords = ["aws", "id_rsa", "canary", "password", "backup", ".bash_history"]
-            is_honeytoken_breach = any(kw in cmd.lower() for kw in honeytoken_keywords)
+            # Kiểm tra xem có thực sự MỞ/ĐỌC nội dung file Honeytoken không (MITRE T1552)
+            read_actions = ["cat", "head", "tail", "more", "less", "grep", "nano", "vim", "vi", "cp", "scp", "strings"]
+            is_read_op = any(cmd.lower().strip().startswith(act + " ") or f"| {act}" in cmd.lower() for act in read_actions)
+            honeytoken_keywords = ["credentials", "id_rsa", "canary", "password", "backup", ".bash_history"]
+            is_honeytoken_breach = is_read_op and any(kw in cmd.lower() for kw in honeytoken_keywords)
 
             if is_honeytoken_breach:
                 return ThreatAlert(
