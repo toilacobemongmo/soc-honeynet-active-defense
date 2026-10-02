@@ -17,8 +17,9 @@ class CowrieLogListener:
         self._running = False
         self._last_position = 0
 
-    def start(self, callback: Callable[[dict], None]) -> None:
-        """Bắt đầu lắng nghe sự kiện từ file log và chuyển qua hàm callback xử lý."""
+    def start(self, callback: Callable[[dict], None], replay_existing: bool = True) -> None:
+        """Bắt đầu lắng nghe sự kiện từ file log và chuyển qua hàm callback xử lý.
+        Nếu replay_existing=True, nạp các sự kiện đã có trước đó trước khi tail sự kiện mới."""
         self._running = True
         
         # Nếu file chưa tồn tại, tạo thư mục và file trống
@@ -28,8 +29,9 @@ class CowrieLogListener:
                 pass
 
         with open(self.log_file_path, "r", encoding="utf-8") as f:
-            # Di chuyển con trỏ tới cuối file để theo dõi log mới
-            f.seek(0, os.SEEK_END)
+            if not replay_existing:
+                # Di chuyển con trỏ tới cuối file để chỉ theo dõi log mới
+                f.seek(0, os.SEEK_END)
             self._last_position = f.tell()
 
             while self._running:

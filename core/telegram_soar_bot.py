@@ -26,14 +26,16 @@ class TelegramSOARBot:
 
     def send_incident_alert(self, alert_data: Dict) -> bool:
         """Gửi thẻ cảnh báo sự cố kèm các nút bấm hành động tương tác."""
-        if not self.bot_token or self.bot_token == "YOUR_TELEGRAM_BOT_TOKEN":
+        if not self.bot_token or self.bot_token == "YOUR_TELEGRAM_BOT_TOKEN" or not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
             # In ra màn hình console ở chế độ mô phỏng
             print("\n[TELEGRAM SOAR BOT SIMULATION]")
             print(f"🚨 TIÊU ĐỀ: {alert_data.get('rule_name')}")
             print(f"🎯 IP Mục tiêu: {alert_data.get('source_ip')}")
             print(f"🛡️ MITRE ATT&CK: {alert_data.get('mitre_id')} - {alert_data.get('mitre_name')}")
             print(f"⚙️ Hành động đề xuất: {alert_data.get('recommended_action')}")
-            print("[NÚT BẤM CÓ SẴN]: [🔍 Quét ngược OSINT] | [⛔ Chặn IP ngay] | [⏳ Đưa vào Tarpit]\n")
+            print("[NÚT BẤM CÓ SẴN]: [🔍 Quét ngược OSINT] | [⛔ Chặn IP ngay] | [⏳ Đưa vào Tarpit]")
+            if not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
+                print("💡 (Mẹo: Mở bot trên Telegram và gửi /start để bot tự động nhận diện Chat ID của bạn!)\n")
             return True
 
         ip = alert_data.get("source_ip", "0.0.0.0")
@@ -117,6 +119,14 @@ class TelegramSOARBot:
                     data = resp.json()
                     for update in data.get("result", []):
                         self.last_update_id = update["update_id"]
+                        if "message" in update:
+                            chat = update["message"].get("chat", {})
+                            if "id" in chat:
+                                incoming_id = str(chat["id"])
+                                if not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
+                                    self.chat_id = incoming_id
+                                    print(f"\n[+] Tự động nhận diện Chat ID Telegram: {incoming_id}")
+                                    self.send_simple_message("✅ <b>Hệ thống Mini-SOC Active Defense & SOAR đã kết nối thành công với Telegram của bạn!</b>")
                         if "callback_query" in update:
                             self._handle_callback(update["callback_query"])
             except Exception:

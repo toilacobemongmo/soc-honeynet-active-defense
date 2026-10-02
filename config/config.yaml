@@ -14,8 +14,8 @@ cowrie:
 # Cấu hình Telegram SOAR Bot (Tương tác 2 chiều)
 telegram:
   enabled: true
-  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"    # Thay bằng token từ @BotFather
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"        # Chat ID của Security Analyst / SOC Team
+  bot_token: "8992402471:AAHD8NvQwUmibSTXWHQQgV7Zf6GFspN-Pls"    # Bot Token được cung cấp
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"        # Thay bằng Chat ID của bạn (nhắn /start cho bot hoặc dùng @userinfobot)
   poll_interval_sec: 2
 
 # Tích hợp Threat Intelligence (Trinh sát ngược)

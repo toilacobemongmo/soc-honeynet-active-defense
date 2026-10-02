@@ -3,18 +3,22 @@ Main Orchestrator: Hệ sinh thái Phòng thủ Chủ động (Active Defense & 
 Tích hợp Cowrie SSH Honeypot, Correlation Engine, Reverse Intel, Honeytokens và Telegram SOAR Bot.
 """
 
+import argparse
 import os
 import sys
+import threading
+import time
 import yaml
 
 if sys.platform.startswith("win"):
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
     except Exception:
         pass
 from core.correlation_engine import EventCorrelationEngine, ThreatAlert
 from core.cowrie_listener import CowrieLogListener
 from core.honeytoken_manager import HoneytokenManager
+from core.mini_ssh_honeypot import MiniSSHHoneypot
 from core.payload_analyzer import PayloadAnalyzer
 from core.reverse_intel import ReverseIntelligenceEngine
 from core.soar_enforcer import SOAREnforcer
@@ -22,9 +26,11 @@ from core.telegram_soar_bot import TelegramSOARBot
 
 
 class MiniSOCActiveDefenseOrchestrator:
-    def __init__(self, config_path: str = "config/config.yaml"):
+    def __init__(self, config_path: str = "config/config.yaml", enable_honeypot: bool = True, honeypot_port: int = 2222):
         print("[*] Đang khởi động Hệ thống Mini-SOC Active Defense & SOAR...")
         self.config = self._load_config(config_path)
+        self.enable_honeypot = enable_honeypot
+        self.honeypot_port = honeypot_port
 
         # 1. Khởi tạo Phân hệ Phản ứng Sự cố (SOAR Enforcer)
         whitelist = self.config.get("soar_rules", {}).get("firewall_enforcement", {}).get("whitelist", [])
@@ -63,6 +69,18 @@ class MiniSOCActiveDefenseOrchestrator:
         # 7. Khởi tạo Bộ lắng nghe Log Cowrie
         cowrie_log_path = self.config.get("cowrie", {}).get("log_path", "./data/cowrie.json")
         self.listener = CowrieLogListener(log_file_path=cowrie_log_path)
+
+        # 8. Khởi tạo Live SSH Honeypot tương tác thật
+        self.honeypot = None
+        if self.enable_honeypot:
+            try:
+                self.honeypot = MiniSSHHoneypot(
+                    port=self.honeypot_port,
+                    log_file=cowrie_log_path,
+                    soar_enforcer=self.enforcer,
+                )
+            except Exception as e:
+                print(f"[!] Không thể khởi tạo SSH Honeypot trên port {self.honeypot_port}: {e}")
 
         print("[+] Toàn bộ phân hệ phòng thủ chủ động đã sẵn sàng hoạt động!")
 
@@ -148,17 +166,90 @@ class MiniSOCActiveDefenseOrchestrator:
             "recommended_action": alert.recommended_action,
         })
 
-    def run(self) -> None:
+    def run(self, replay_existing: bool = True, auto_simulate: bool = False) -> None:
         """Khởi động toàn bộ luồng hoạt động."""
+        # 1. Khởi động Live SSH Honeypot
+        if self.honeypot:
+            self.honeypot.start_background()
+
+        # 2. Khởi động Telegram SOAR Bot
         self.telegram_bot.start_polling()
-        print("[*] Đang lắng nghe luồng sự kiện Cowrie... (Nhấn Ctrl+C để dừng)")
+
+        # 3. Kích hoạt tự động giả lập tấn công nếu được yêu cầu
+        if auto_simulate:
+            def _async_sim():
+                time.sleep(2.0)
+                try:
+                    from scripts.simulate_attack import (
+                        simulate_scenario_1_bruteforce,
+                        simulate_scenario_2_login_and_recon,
+                        simulate_scenario_3_honeytoken_breach,
+                        simulate_scenario_4_malware_drop,
+                    )
+                    simulate_scenario_1_bruteforce()
+                    time.sleep(1)
+                    simulate_scenario_2_login_and_recon()
+                    time.sleep(1)
+                    simulate_scenario_3_honeytoken_breach()
+                    time.sleep(1)
+                    simulate_scenario_4_malware_drop()
+                except Exception as ex:
+                    print(f"[-] Lỗi trong luồng giả lập: {ex}")
+
+            threading.Thread(target=_async_sim, daemon=True).start()
+
+        print("\n" + "=" * 76)
+        print("   🛡️  HỆ SINH THÁI ACTIVE DEFENSE & SOAR HONEYNET (MINI-SOC LIVE DEMO)")
+        print("=" * 76)
+        print("[*] Trạng thái các phân hệ phòng thủ:")
+        print("    • Tương quan sự kiện MITRE ATT&CK : SẴN SÀNG")
+        print("    • Phản ứng sự cố SOAR Enforcer    : SẴN SÀNG (Firewall & Tarpit Active)")
+        print("    • Bẫy mồi chủ động Honeytoken     : SẴN SÀNG (.aws/credentials, db_pass)")
+        print("    • Trinh sát ngược Threat Intel    : SẴN SÀNG (GeoIP / AbuseIPDB)")
+        print("    • Bot tương tác Telegram SOAR     : SẴN SÀNG")
+        if self.honeypot:
+            print(f"    • Live SSH Honeypot tương tác thật: ĐANG LẮNG NGHE PORT {self.honeypot_port} (0.0.0.0:{self.honeypot_port})")
+        print("-" * 76)
+        print("👉 CÁC CÁCH KIỂM THỬ THỰC TẾ (LIVE DEMO) ĐỂ GỬI GIẢNG VIÊN:")
+        print(f"   [1] KẾT NỐI SSH THẬT VÀO HONEYPOT (Từ cửa sổ Terminal khác):")
+        print(f"       ssh root@127.0.0.1 -p {self.honeypot_port if self.honeypot else 2222}")
+        print("       - Nhập sai mật khẩu liên tục (>5 lần) -> SOAR sẽ tự động khóa IP!")
+        print("       - Nhập mật khẩu 'root123' để vào shell Ubuntu bẫy mồi:")
+        print("         + Gõ: whoami, uname -a, ps aux")
+        print("         + Gõ lệnh bẫy: cat /root/.aws/credentials (Kích hoạt Canary Token)")
+        print("   [2] MỞ GIAO DIỆN WEB SOC DASHBOARD TRỰC QUAN:")
+        print("       streamlit run scripts/dashboard.py")
+        print("   [3] HOẶC BẮN LUỒNG GIẢ LẬP TẤN CÔNG RED TEAM:")
+        print("       python scripts/simulate_attack.py")
+        print("=" * 76)
+        print("[*] Đang theo dõi sự kiện an ninh... (Nhấn Ctrl+C để dừng)\n")
+
         try:
-            self.listener.start(callback=self.on_cowrie_event)
+            self.listener.start(callback=self.on_cowrie_event, replay_existing=replay_existing)
         except KeyboardInterrupt:
-            print("\n[-] Dừng hệ thống.")
+            print("\n[-] Đang dừng hệ thống...")
+            if self.honeypot:
+                self.honeypot.stop()
             self.listener.stop()
 
 
+def main():
+    parser = argparse.ArgumentParser(description="Hệ thống Mini-SOC Active Defense & SOAR Honeynet")
+    parser.add_argument("--port", type=int, default=2222, help="Cổng chạy SSH Honeypot thật (Mặc định: 2222)")
+    parser.add_argument("--no-honeypot", action="store_true", help="Tắt Live SSH Honeypot")
+    parser.add_argument("--no-replay", action="store_true", help="Không đọc lại các dòng log cũ đã có")
+    parser.add_argument("--simulate", action="store_true", help="Tự động bắn 4 kịch bản tấn công ngay sau khi khởi động")
+    args = parser.parse_args()
+
+    orchestrator = MiniSOCActiveDefenseOrchestrator(
+        enable_honeypot=not args.no_honeypot,
+        honeypot_port=args.port,
+    )
+    orchestrator.run(
+        replay_existing=not args.no_replay,
+        auto_simulate=args.simulate,
+    )
+
+
 if __name__ == "__main__":
-    orchestrator = MiniSOCActiveDefenseOrchestrator()
-    orchestrator.run()
+    main()
