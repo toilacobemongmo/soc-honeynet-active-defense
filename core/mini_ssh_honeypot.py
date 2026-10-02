@@ -213,6 +213,18 @@ class MiniSSHHoneypot:
 
         if base in ("exit", "logout", "quit"):
             return "__EXIT__"
+        elif base == "clear":
+            return "\033[H\033[2J"
+        elif base in ("help", "?"):
+            return (
+                "Mini-SOC Honeypot Interactive Bash Environment\r\n"
+                "Available commands: whoami, id, uname, pwd, ls, cat, ps, ifconfig, ip, history, wget, curl, ping, clear, exit\r\n"
+                "Honeytoken Decoy targets: cat /root/.aws/credentials, cat db_backup.sql\r\n"
+            )
+        elif base == "sudo":
+            if len(parts) > 1:
+                return self._execute_mock_command(" ".join(parts[1:]), ip, session_id)
+            return "usage: sudo command\r\n"
         elif base == "whoami":
             return "root\r\n"
         elif base == "id":
@@ -225,6 +237,30 @@ class MiniSSHHoneypot:
             return (
                 ".aws  .bash_history  .bashrc  .profile  db_backup.sql\r\n"
             )
+        elif base in ("ifconfig", "ip"):
+            return (
+                "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\r\n"
+                "        inet 192.168.1.150  netmask 255.255.255.0  broadcast 192.168.1.255\r\n"
+                "        inet6 fe80::a00:27ff:fe4e:66b1  prefixlen 64  scopeid 0x20<link>\r\n"
+                "        ether 08:00:27:4e:66:b1  txqueuelen 1000  (Ethernet)\r\n"
+            )
+        elif base == "history":
+            return (
+                "    1  cd /var/backups\r\n"
+                "    2  ls -la\r\n"
+                "    3  cat db_backup.sql\r\n"
+                "    4  curl http://internal-vault.corp/keys\r\n"
+                "    5  history\r\n"
+            )
+        elif base == "echo":
+            return " ".join(parts[1:]) + "\r\n"
+        elif base == "ping":
+            target_host = parts[1] if len(parts) > 1 else "8.8.8.8"
+            return (
+                f"PING {target_host} ({target_host}) 56(84) bytes of data.\r\n"
+                f"64 bytes from {target_host}: icmp_seq=1 ttl=116 time=14.2 ms\r\n"
+                f"64 bytes from {target_host}: icmp_seq=2 ttl=116 time=14.5 ms\r\n"
+            )
         elif "cat" in base or (len(parts) > 1 and parts[0] == "cat"):
             target = parts[1] if len(parts) > 1 else ""
             if "aws" in target or "credentials" in target:
@@ -234,12 +270,19 @@ class MiniSSHHoneypot:
                     "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\r\n"
                     "# Honeytoken Canary Beacon: https://canarytokens.org/tags/terms/381923\r\n"
                 )
-            elif "pass" in target or "backup" in target or "db" in target:
+            elif "pass" in target or "backup" in target or "db" in target or "sql" in target:
                 return (
-                    "# Production Database Credentials Backup\r\n"
-                    "DB_HOST=10.0.0.5\r\n"
-                    "DB_USER=soc_admin\r\n"
-                    "DB_PASS=SuperSecret2026!@#\r\n"
+                    "-- Production Database Backup\r\n"
+                    "CREATE DATABASE production_db;\r\n"
+                    "INSERT INTO users VALUES ('admin', '$2a$12$e8rO2zM4vL1kH...', 'admin@company.internal');\r\n"
+                    "# Honeytoken Canary Beacon: https://canarytokens.org/tags/terms/994102\r\n"
+                )
+            elif "passwd" in target:
+                return (
+                    "root:x:0:0:root:/root:/bin/bash\r\n"
+                    "daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\r\n"
+                    "bin:x:2:2:bin:/bin:/usr/sbin/nologin\r\n"
+                    "ubuntu:x:1000:1000:Ubuntu:/home/ubuntu:/bin/bash\r\n"
                 )
             elif "cpuinfo" in target:
                 return "model name : Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz\r\ncpu MHz : 2400.046\r\n"
