@@ -18,7 +18,7 @@ from typing import Callable, Optional
 
 class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Tắt in log HTTP thô ra console để giữ màn hình SOC sạch sẽ
+        # Tắt in log HTTP thô ra console 
         pass
 
     def do_GET(self):
@@ -46,14 +46,11 @@ class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
         elif "db" in request_path or "sql" in request_path or "admin" in request_path:
             token_type = "Link Quản trị trong db_backup.sql (T1552)"
 
-        print("\n" + "🔥" * 38)
         print("🎯 [SOAR ACTIVE DEFENSE - KHỬ ẨN DANH THÀNH CÔNG!]")
         print(f"• Loại bẫy: {token_type}")
         print(f"• IP THẬT CỦA HACKER (Real IP): {real_ip}")
         print(f"• Công cụ / User-Agent: {user_agent}")
         print(f"• Đường dẫn bị gọi: {request_path}")
-        print("• Trạng thái: Đã vô hiệu hóa lớp vỏ bọc VPN/Proxy của hacker!")
-        print("🔥" * 38 + "\n")
 
         # Gửi callback tới Orchestrator nếu có
         if hasattr(self.server, "alert_callback") and self.server.alert_callback:
