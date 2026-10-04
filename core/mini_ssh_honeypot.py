@@ -326,12 +326,26 @@ class HoneypotSSHServer(paramiko.ServerInterface):
     def check_auth_password(self, username, password):
         print(f"\n[*] [SSH Honeypot] Attacker IP {self.client_ip} vừa thử đăng nhập | User: '{username}' | Password: '{password}'")
 
+        # 1. Chặn ngay nếu IP đã bị SOAR Firewall khóa
         if self.is_ip_blocked_func(self.client_ip):
             print(f"[-] [SSH Honeypot] TỪ CHỐI IP {self.client_ip} do đang bị SOAR Firewall khóa cứng!")
             return paramiko.AUTH_FAILED
 
-        acceptable_passwords = ["root", "123456", "password", "admin", "toor", "root123", "12345", "ubuntu"]
-        if password in acceptable_passwords or username in ("root", "admin", "ubuntu"):
+        # 2. Xử lý Tarpit làm chậm: Chờ 3 giây trước khi phản hồi để ghìm tốc độ kẻ tấn công mà không gây timeout
+        # (Hydra timeout mặc định là 15-30s, độ trễ 3s)
+        # Giả định server interface có cờ is_tarpitted hoặc kiểm tra từ soar_enforcer
+        if hasattr(self, "is_tarpitted_func") and self.is_tarpitted_func(self.client_ip):
+            print(f"[⏳ TARPIT] Đang giam lỏng IP {self.client_ip}: Trì hoãn phản hồi 3 giây...")
+            time.sleep(3)
+
+        # 3. Định nghĩa mật khẩu đúng cho từng tài khoản (Bắt buộc khớp cả User VÀ Password)
+        valid_accounts = {
+            "ubuntu": "1234567",
+            "root": "monkey"
+        }
+
+        # Kiểm tra khớp chính xác cả user và password
+        if username in valid_accounts and password == valid_accounts[username]:
             print(f"[+] [SSH Honeypot] Đăng nhập THÀNH CÔNG (Cấp shell Linux giả lập cho IP {self.client_ip})")
             self.authenticated_user = username
             self.log_callback({
@@ -353,7 +367,7 @@ class HoneypotSSHServer(paramiko.ServerInterface):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
             return paramiko.AUTH_FAILED
-
+        
     def check_channel_request(self, kind, chanid):
         if kind == "session":
             return paramiko.OPEN_SUCCEEDED
