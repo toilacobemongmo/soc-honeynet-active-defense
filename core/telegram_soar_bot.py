@@ -29,17 +29,17 @@ class TelegramSOARBot:
         if not self.bot_token or self.bot_token == "YOUR_TELEGRAM_BOT_TOKEN" or not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
             # In ra màn hình console ở chế độ mô phỏng
             print("\n[TELEGRAM SOAR BOT SIMULATION]")
-            print(f"TIÊU ĐỀ: {alert_data.get('rule_name')}")
-            print(f"IP Mục tiêu: {alert_data.get('source_ip')}")
-            print(f"MITRE ATT&CK: {alert_data.get('mitre_id')} - {alert_data.get('mitre_name')}")
-            print(f"Hành động đề xuất: {alert_data.get('recommended_action')}")
-            print("[NÚT BẤM CÓ SẴN]: [Quét ngược OSINT] | [Chặn IP ngay] | [Đưa vào Tarpit]")
+            print(f"🚨 TIÊU ĐỀ: {alert_data.get('rule_name')}")
+            print(f"🎯 IP Mục tiêu: {alert_data.get('source_ip')}")
+            print(f"🛡️ MITRE ATT&CK: {alert_data.get('mitre_id')} - {alert_data.get('mitre_name')}")
+            print(f"⚙️ Hành động đề xuất: {alert_data.get('recommended_action')}")
+            print("[NÚT BẤM CÓ SẴN]: [🔍 Quét ngược OSINT] | [⛔ Chặn IP ngay] | [⏳ Đưa vào Tarpit]")
             if not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
-                print("(Mẹo: Mở bot trên Telegram và gửi /start để bot tự động nhận diện Chat ID của bạn!)\n")
+                print("💡 (Mẹo: Mở bot trên Telegram và gửi /start để bot tự động nhận diện Chat ID của bạn!)\n")
             return True
 
         ip = alert_data.get("source_ip", "0.0.0.0")
-        severity_icon = "!" if alert_data.get("severity") in ("CRITICAL", "HIGH") else "!!!"
+        severity_icon = "🚨" if alert_data.get("severity") in ("CRITICAL", "HIGH") else "⚠️"
 
         text = (
             f"{severity_icon} <b>CẢNH BÁO AN NINH SOAR - MINI SOC</b>\n"
@@ -55,18 +55,18 @@ class TelegramSOARBot:
         for k, v in alert_data.get("details", {}).items():
             text += f"• <i>{k}:</i> <code>{v}</code>\n"
 
-        text += "\n<b>Chọn hành động phản ứng chủ động:</b>"
+        text += "\n👇 <b>Chọn hành động phản ứng chủ động:</b>"
 
         # Bàn phím nút bấm tương tác (Inline Keyboard)
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "Trinh sát ngược OSINT", "callback_data": f"recon:{ip}"},
-                    {"text": "Đưa vào Tarpit", "callback_data": f"tarpit:{ip}"},
+                    {"text": "🔍 Trinh sát ngược OSINT", "callback_data": f"recon:{ip}"},
+                    {"text": "⏳ Đưa vào Tarpit", "callback_data": f"tarpit:{ip}"},
                 ],
                 [
-                    {"text": "Chặn Firewall tức thì", "callback_data": f"block:{ip}"},
-                    {"text": "Mở khóa IP", "callback_data": f"unblock:{ip}"},
+                    {"text": "⛔ Chặn Firewall tức thì", "callback_data": f"block:{ip}"},
+                    {"text": "🔓 Mở khóa IP", "callback_data": f"unblock:{ip}"},
                 ],
             ]
         }
@@ -126,7 +126,7 @@ class TelegramSOARBot:
                                 if not self.chat_id or self.chat_id == "YOUR_TELEGRAM_CHAT_ID":
                                     self.chat_id = incoming_id
                                     print(f"\n[+] Tự động nhận diện Chat ID Telegram: {incoming_id}")
-                                    self.send_simple_message("<b>Hệ thống Mini-SOC Active Defense & SOAR đã kết nối thành công với Telegram của bạn!</b>")
+                                    self.send_simple_message("✅ <b>Hệ thống Mini-SOC Active Defense & SOAR đã kết nối thành công với Telegram của bạn!</b>")
                         if "callback_query" in update:
                             self._handle_callback(update["callback_query"])
             except Exception:
@@ -149,5 +149,5 @@ class TelegramSOARBot:
         if self.action_callback:
             result = self.action_callback(action, ip)
             # Thông báo lại kết quả cho chuyên viên
-            msg = f"<b>HÀNH ĐỘNG ĐÃ THỰC THI:</b> <code>{action.upper()}</code>\n<b>Mục tiêu:</b> <code>{ip}</code>\n<b>Kết quả:</b> {result.get('action', 'Hoàn tất')}"
+            msg = f"🛡️ <b>HÀNH ĐỘNG ĐÃ THỰC THI:</b> <code>{action.upper()}</code>\n<b>Mục tiêu:</b> <code>{ip}</code>\n<b>Kết quả:</b> {result.get('action', 'Hoàn tất')}"
             self.send_simple_message(msg)

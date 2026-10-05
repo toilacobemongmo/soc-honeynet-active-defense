@@ -46,7 +46,7 @@ class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
         elif "db" in request_path or "sql" in request_path or "admin" in request_path:
             token_type = "Link Quản trị trong db_backup.sql (T1552)"
 
-        print("[SOAR ACTIVE DEFENSE - KHỬ ẨN DANH THÀNH CÔNG!]")
+        print("🎯 [SOAR ACTIVE DEFENSE - KHỬ ẨN DANH THÀNH CÔNG!]")
         print(f"• Loại bẫy: {token_type}")
         print(f"• IP THẬT CỦA HACKER (Real IP): {real_ip}")
         print(f"• Công cụ / User-Agent: {user_agent}")
@@ -96,7 +96,7 @@ class CanaryServer:
             self.server = HTTPServer((self.host, self.port), CanaryHTTPRequestHandler)
             self.server.alert_callback = self.alert_callback
             self.is_running = True
-            print(f"[CANARY SERVER] Webhook Khử ẩn danh đang lắng nghe tại: http://{self.host}:{self.port}")
+            print(f"[🪤 CANARY SERVER] Webhook Khử ẩn danh đang lắng nghe tại: http://{self.host}:{self.port}")
             self.server.serve_forever()
         except Exception as e:
             print(f"[-] Không thể khởi động Canary Server trên port {self.port}: {e}")
