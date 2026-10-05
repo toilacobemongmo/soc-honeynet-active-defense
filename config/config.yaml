@@ -22,20 +22,19 @@ telegram:
 threat_intel:
   abuseipdb:
     enabled: true
-    api_key: "YOUR_ABUSEIPDB_API_KEY"
-    confidence_threshold: 40             # Nếu điểm nguy hại > 40%, tự động gán nhãn Malicious
+    api_key: "ad06064fb71a444e1659791e89b3c3194e0816474c05fd88f19ed8a9b66e51a4aefd43396bdf8431"
+    confidence_threshold: 40            
   shodan:
     enabled: true
-    api_key: "YOUR_SHODAN_API_KEY"
+    api_key: "wAijerlbsjvpCOyzeZ8Arnp8D3cgpHwG"
   virustotal:
     enabled: true
-    api_key: "YOUR_VIRUSTOTAL_API_KEY"
+    api_key: "57fee4f2beeac4df0251737a3b1dd6754b1faee41ad64f3fd151150ec634744f"
   reverse_nmap:
     enabled: true
     safe_mode: true                       # Chỉ quét cổng phổ biến (21,22,23,80,443,8080,8888,3389,5900)
     top_ports: 20
 
-# Cấu hình Bẫy Mồi Chủ Động (Active Honeytoken & Deception)
 honeytokens:
   enabled: true
   callback_url: "https://canarytokens.org/generate" # Hoặc webhook riêng của bạn
