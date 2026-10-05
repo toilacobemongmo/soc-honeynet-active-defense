@@ -18,7 +18,7 @@ from typing import Callable, Optional
 
 class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Tắt in log HTTP thô ra console để giữ màn hình SOC sạch sẽ
+        # Tắt in log HTTP thô ra console 
         pass
 
     def do_GET(self):
@@ -30,7 +30,7 @@ class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
     def _handle_canary_hit(self):
         # Trích xuất IP thật của kẻ tấn công
         real_ip = self.client_address[0]
-        # Nếu có reverse proxy / Cloudflare / Nginx
+        # Nếu có proxy
         if "X-Forwarded-For" in self.headers:
             real_ip = self.headers["X-Forwarded-For"].split(",")[0].strip()
 
@@ -46,14 +46,11 @@ class CanaryHTTPRequestHandler(BaseHTTPRequestHandler):
         elif "db" in request_path or "sql" in request_path or "admin" in request_path:
             token_type = "Link Quản trị trong db_backup.sql (T1552)"
 
-        print("\n" + "🔥" * 38)
-        print("🎯 [SOAR ACTIVE DEFENSE - KHỬ ẨN DANH THÀNH CÔNG!]")
+        print("[SOAR ACTIVE DEFENSE - KHỬ ẨN DANH THÀNH CÔNG!]")
         print(f"• Loại bẫy: {token_type}")
         print(f"• IP THẬT CỦA HACKER (Real IP): {real_ip}")
         print(f"• Công cụ / User-Agent: {user_agent}")
         print(f"• Đường dẫn bị gọi: {request_path}")
-        print("• Trạng thái: Đã vô hiệu hóa lớp vỏ bọc VPN/Proxy của hacker!")
-        print("🔥" * 38 + "\n")
 
         # Gửi callback tới Orchestrator nếu có
         if hasattr(self.server, "alert_callback") and self.server.alert_callback:
@@ -99,7 +96,7 @@ class CanaryServer:
             self.server = HTTPServer((self.host, self.port), CanaryHTTPRequestHandler)
             self.server.alert_callback = self.alert_callback
             self.is_running = True
-            print(f"[🪤 CANARY SERVER] Webhook Khử ẩn danh đang lắng nghe tại: http://{self.host}:{self.port}")
+            print(f"[CANARY SERVER] Webhook Khử ẩn danh đang lắng nghe tại: http://{self.host}:{self.port}")
             self.server.serve_forever()
         except Exception as e:
             print(f"[-] Không thể khởi động Canary Server trên port {self.port}: {e}")
