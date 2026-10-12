@@ -335,7 +335,7 @@ class HoneypotSSHServer(paramiko.ServerInterface):
         # (Hydra timeout mặc định là 15-30s, độ trễ 3s)
         # Giả định server interface có cờ is_tarpitted hoặc kiểm tra từ soar_enforcer
         if hasattr(self, "is_tarpitted_func") and self.is_tarpitted_func(self.client_ip):
-            print(f"[⏳ TARPIT] Đang giam lỏng IP {self.client_ip}: Trì hoãn phản hồi 3 giây...")
+            print(f"[TARPIT] Đang giam lỏng IP {self.client_ip}: Trì hoãn phản hồi 3 giây...")
             time.sleep(3)
 
         # 3. Định nghĩa mật khẩu đúng cho từng tài khoản (Bắt buộc khớp cả User VÀ Password)
@@ -814,7 +814,7 @@ class MiniSSHHoneypot:
 
     def handle_client(self, client_socket, addr):
         ip, port = addr
-        print(f"\n[🔌 KẾT NỐI MỚI] Kẻ tấn công từ IP {ip}:{port} vừa kết nối SSH vào Honeypot!")
+        print(f"\n[KẾT NỐI MỚI] Kẻ tấn công từ IP {ip}:{port} vừa kết nối SSH vào Honeypot!")
         if self.is_ip_blocked(ip):
             print(f"[!] [SOAR Active Defense] Phát hiện kết nối từ IP bị chặn Firewall: {ip}. Đóng kết nối lập tức!")
             client_socket.close()
@@ -822,7 +822,7 @@ class MiniSSHHoneypot:
 
         # Kiểm tra nếu IP đang bị đưa vào Tarpit giam lỏng
         if self.soar_enforcer and hasattr(self.soar_enforcer, "is_tarpitted") and self.soar_enforcer.is_tarpitted(ip):
-            print(f"\n[⏳ SOAR TARPIT KÍCH HOẠT] IP {ip} đang bị giam lỏng trong hố Tarpit! Gửi dữ liệu chậm cực độ để làm treo đối phương...")
+            print(f"\n[SOAR TARPIT KÍCH HOẠT] IP {ip} đang bị giam lỏng trong hố Tarpit! Gửi dữ liệu chậm cực độ để làm treo đối phương...")
             banner = b"SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.4\r\n"
             try:
                 for byte in banner:
@@ -891,8 +891,8 @@ class MiniSSHHoneypot:
         self.server_socket.listen(50)
         self.server_socket.settimeout(1.0)
 
-        print(f"[🛡️ SSH HONEYPOT] Đang lắng nghe kết nối SSH THẬT tại port {self.port} (0.0.0.0:{self.port})")
-        print(f"    👉 Thử nghiệm kết nối thật: ssh root@127.0.0.1 -p {self.port}\n")
+        print(f"[SSH HONEYPOT] Đang lắng nghe kết nối SSH THẬT tại port {self.port} (0.0.0.0:{self.port})")
+        print(f"    [+] Thử nghiệm kết nối thật: ssh root@127.0.0.1 -p {self.port}\n")
 
         while self.is_running:
             try:

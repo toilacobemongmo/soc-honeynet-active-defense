@@ -137,7 +137,31 @@ class MiniSOCActiveDefenseOrchestrator:
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"Không tìm thấy file cấu hình tại {config_path}")
         with open(config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            cfg = yaml.safe_load(f) or {}
+
+        # Nạp biến môi trường từ .env nếu có
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+        except ImportError:
+            pass
+
+        # Hỗ trợ ghi đè biến môi trường để bảo mật secrets
+        tg = cfg.setdefault("telegram", {})
+        if os.getenv("TELEGRAM_BOT_TOKEN"):
+            tg["bot_token"] = os.getenv("TELEGRAM_BOT_TOKEN")
+        if os.getenv("TELEGRAM_CHAT_ID"):
+            tg["chat_id"] = os.getenv("TELEGRAM_CHAT_ID")
+
+        ti = cfg.setdefault("threat_intel", {})
+        if os.getenv("ABUSEIPDB_API_KEY"):
+            ti.setdefault("abuseipdb", {})["api_key"] = os.getenv("ABUSEIPDB_API_KEY")
+        if os.getenv("SHODAN_API_KEY"):
+            ti.setdefault("shodan", {})["api_key"] = os.getenv("SHODAN_API_KEY")
+        if os.getenv("VIRUSTOTAL_API_KEY"):
+            ti.setdefault("virustotal", {})["api_key"] = os.getenv("VIRUSTOTAL_API_KEY")
+
+        return cfg
 
     def _handle_analyst_action(self, action: str, ip: str) -> dict:
         """Xử lý lệnh khi Chuyên viên SOC bấm nút trên Telegram."""
@@ -146,7 +170,7 @@ class MiniSOCActiveDefenseOrchestrator:
         if action == "recon":
             recon_data = self.reverse_intel.gather_full_recon(ip)
             summary = (
-                f"🔎 <b>KẾT QUẢ TRINH SÁT NGƯỢC IP:</b> <code>{ip}</code>\n"
+                f"<b>[SOAR] KET QUA TRINH SAT NGUOC IP:</b> <code>{ip}</code>\n"
                 f"• Quốc gia: {recon_data['geo_intel'].get('country')} ({recon_data['geo_intel'].get('city')})\n"
                 f"• ISP: {recon_data['geo_intel'].get('isp')}\n"
                 f"• Điểm độc hại (AbuseIPDB): {recon_data['reputation'].get('abuseConfidenceScore', 0)}%\n"
@@ -252,7 +276,7 @@ class MiniSOCActiveDefenseOrchestrator:
             threading.Thread(target=_async_sim, daemon=True).start()
 
         print("\n" + "=" * 76)
-        print("   🛡️  HỆ SINH THÁI ACTIVE DEFENSE & SOAR HONEYNET (MINI-SOC LIVE DEMO)")
+        print("   [SOAR] HE SINH THAI ACTIVE DEFENSE & SOAR HONEYNET (MINI-SOC LIVE DEMO)")
         print("=" * 76)
         print("[*] Trạng thái các phân hệ phòng thủ:")
         print("    • Tương quan sự kiện MITRE ATT&CK : SẴN SÀNG")
@@ -265,7 +289,7 @@ class MiniSOCActiveDefenseOrchestrator:
         if self.canary_server:
             print(f"    • Cổng Webhook Bẫy Khử ẩn danh    : ĐANG LẮNG NGHE PORT {self.canary_port} (http://0.0.0.0:{self.canary_port})")
         print("-" * 76)
-        print("👉 CÁC CÁCH KIỂM THỬ THỰC TẾ (LIVE DEMO) ĐỂ GỬI GIẢNG VIÊN:")
+        print("[+] CAC CACH KIEM THU THUC TE (LIVE DEMO) DE GUI GIANG VIEN:")
         print(f"   [1] KẾT NỐI SSH THẬT VÀO HONEYPOT (Từ cửa sổ Terminal khác):")
         print(f"       ssh root@127.0.0.1 -p {self.honeypot_port if self.honeypot else 2222}")
         print("       - Nhập sai mật khẩu liên tục (>5 lần) -> SOAR sẽ tự động khóa IP!")

@@ -14,22 +14,22 @@ cowrie:
 # Cấu hình Telegram SOAR Bot (Tương tác 2 chiều)
 telegram:
   enabled: true
-  bot_token: "8992402471:AAHD8NvQwUmibSTXWHQQgV7Zf6GFspN-Pls"    # Bot Token được cung cấp
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"        # Thay bằng Chat ID của bạn (nhắn /start cho bot hoặc dùng @userinfobot)
+  bot_token: ""    # Điền token của bạn hoặc cấu hình qua TELEGRAM_BOT_TOKEN trong .env
+  chat_id: ""      # Điền chat ID hoặc cấu hình qua TELEGRAM_CHAT_ID trong .env
   poll_interval_sec: 2
 
 # Tích hợp Threat Intelligence (Trinh sát ngược)
 threat_intel:
   abuseipdb:
     enabled: true
-    api_key: "ad06064fb71a444e1659791e89b3c3194e0816474c05fd88f19ed8a9b66e51a4aefd43396bdf8431"
+    api_key: ""    # Hoặc ABUSEIPDB_API_KEY trong .env
     confidence_threshold: 40            
   shodan:
     enabled: true
-    api_key: "wAijerlbsjvpCOyzeZ8Arnp8D3cgpHwG"
+    api_key: ""    # Hoặc SHODAN_API_KEY trong .env
   virustotal:
     enabled: true
-    api_key: "57fee4f2beeac4df0251737a3b1dd6754b1faee41ad64f3fd151150ec634744f"
+    api_key: ""    # Hoặc VIRUSTOTAL_API_KEY trong .env
   reverse_nmap:
     enabled: true
     safe_mode: true                       # Chỉ quét cổng phổ biến (21,22,23,80,443,8080,8888,3389,5900)

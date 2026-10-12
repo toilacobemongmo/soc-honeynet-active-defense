@@ -6,3 +6,5 @@ __pycache__/
 .venv
 venv/
 ENV/
+.pytest_cache/
+data/quarantine/
