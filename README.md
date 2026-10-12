@@ -24,14 +24,22 @@ Dự án chuyển dịch mô hình an ninh mạng từ **Phòng thủ thụ đ�
 4. **Trinh sát ngược (Reverse Threat Intelligence):**
    * Tự động tra cứu OSINT danh tiếng IP đối thủ qua AbuseIPDB, Shodan và quét port nhanh an toàn.
    * Phân loại tự động: Tor Exit Node, Mass Scanner, Botnet hay Targeted APT.
-5. **Tự động hóa Phản ứng Sự cố (SOAR Enforcer):**
-   * **Tự động chặn IP:** Tương tác trực tiếp với Tường lửa Linux (`iptables`/`nftables`) hoặc Windows Defender Firewall (`netsh`).
-   * **TCP Tarpit:** Làm chậm kết nối, giam lỏng tài nguyên của botnet.
+5. **Tự động hóa Phản ứng Sự cố Đa tầng (Multi-tier SOAR Enforcer):**
+   * **Adaptive Progressive Jail:** Phản ứng chặn lũy tiến thông minh theo chu kỳ vi phạm (Lần 1: 10 phút, Lần 2: 1 giờ, Lần 3: 24 giờ).
+   * **TCP Tarpit Resource Exhaustion:** Làm chậm kết nối, giam lỏng tài nguyên quét của botnet.
    * **Cách ly mã độc:** Băm mã SHA256 và quét mã độc tự động qua VirusTotal API.
-6. **Tương tác 2 chiều qua Telegram SOAR Bot & Web Dashboard:**
+6. **Động cơ Chấm điểm Nguy cơ Động (Dynamic Threat Risk Scoring Engine):**
+   * Chấm điểm rủi ro tích lũy (0 - 100) theo thời gian thực cho từng IP dựa trên trọng số hành vi (Brute Force, System Recon, Malware Staging, Honeytoken Breach).
+   * Phân cấp phản ứng tương ứng: `PASSIVE_MONITOR` -> `ACTIVE_DECEPTION` -> `TARPIT_EXHAUSTION` -> `CONTAINMENT_BLOCK`.
+7. **Pháp y Số & Xem lại Phiên Tấn công (Terminal Forensics & Session Replay):**
+   * Ghi nhận từng phím bấm (keystrokes) và chuỗi lệnh của attacker khi đột nhập Honeypot shell.
+   * Cung cấp giao diện trực quan trên Dashboard mô phỏng lại toàn bộ phiên gõ lệnh của hacker (chuẩn TTY/Asciinema).
+8. **Chuẩn hóa Chia sẻ Tình báo Quốc tế (STIX 2.1 & Snort IDS Rules):**
+   * Tự động xuất bản Indicator of Compromise (IoC) định dạng chuẩn OASIS STIX 2.1 (`data/stix_indicators.json`).
+   * Tự động sinh tệp luật NIDS Snort / Suricata (`data/honeynet_snort_rules.rules`) sẵn sàng đẩy sang hệ thống SIEM/NIDS doanh nghiệp.
+9. **Tương tác 2 chiều qua Telegram SOAR Bot & Web SOC Dashboard:**
    * Gửi cảnh báo tức thời theo thời gian thực.
-   * Cho phép chuyên viên SOC bấm nút duyệt hành động (Chặn IP, Quét ngược OSINT, Tarpit) ngay trên điện thoại.
-   * Web Dashboard trực quan bằng Streamlit.
+   * Cho phép chuyên viên SOC duyệt hành động ngay trên điện thoại hoặc giám sát qua Web Dashboard Streamlit.
 
 ---
 

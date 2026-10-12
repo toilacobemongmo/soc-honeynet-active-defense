@@ -1,9 +1,14 @@
 """
 Module: soar_enforcer.py
-Mục đích: Module Tự động hóa Phản ứng Sự cố (SOAR Enforcer & Active Mitigation Engine).
-Thực thi các hành động bảo vệ chủ động: Chặn tường lửa (iptables/nftables), Điều hướng Tarpit làm kiệt quệ tài nguyên kẻ tấn công, và Quản lý danh sách đen IOCs.
+Mục đích: Module Tự động hóa Phản ứng Sự cố Đa tầng (Multi-tier SOAR Enforcer).
+Vượt xa khỏi Tarpit thô sơ:
+1. Adaptive Progressive Jail (Chặn lũy tiến theo chu kỳ vi phạm: 10m -> 1h -> 24h).
+2. TCP Tarpit Resource Exhaustion (Giam lỏng kết nối).
+3. Dynamic STIX 2.1 Threat Indicator Export (Chuẩn chia sẻ tình báo quốc tế).
+4. Auto-generated Snort/Suricata IDS Rules (Cắm vào hạ tầng SOC thực tế).
 """
 
+import json
 import os
 import platform
 import subprocess
@@ -14,26 +19,48 @@ from typing import Dict, List, Set
 class SOAREnforcer:
     def __init__(self, whitelist: List[str] = None):
         self.whitelist: Set[str] = set(whitelist or ["127.0.0.1", "localhost"])
-        self.blocked_ips: Dict[str, float] = {}  # ip -> block_timestamp
+        self.blocked_ips: Dict[str, float] = {}  # ip -> unblock_timestamp
+        self.strike_counts: Dict[str, int] = {}  # ip -> number of offenses
         self.tarpitted_ips: Set[str] = set()
         self.os_type = platform.system().lower()
 
-    def block_ip(self, ip: str, duration_sec: int = 3600, reason: str = "Brute Force") -> Dict:
-        """Thực thi chặn IP trên Tường lửa hệ thống."""
+    def calculate_adaptive_duration(self, ip: str, base_duration_sec: int = 600) -> int:
+        """
+        Tính thời hạn chặn lũy tiến (Adaptive Penalty Duration):
+        - Vi phạm lần 1: 10 phút (600s)
+        - Vi phạm lần 2: 1 giờ (3600s)
+        - Vi phạm lần 3 trở đi: 24 giờ (86400s) - Persistent Threat Ban
+        """
+        strikes = self.strike_counts.get(ip, 0) + 1
+        self.strike_counts[ip] = strikes
+
+        if strikes == 1:
+            return base_duration_sec
+        elif strikes == 2:
+            return 3600
+        else:
+            return 86400
+
+    def block_ip(self, ip: str, duration_sec: int = None, reason: str = "Brute Force") -> Dict:
+        """Thực thi chặn IP trên Tường lửa hệ thống với cơ chế Adaptive Jail."""
         if ip in self.whitelist:
             return {"status": "skipped", "message": f"IP {ip} nằm trong danh sách WhiteList an toàn"}
+
+        # Nếu không chỉ định rõ thời gian, dùng cơ chế chặn lũy tiến
+        if duration_sec is None:
+            actual_duration = self.calculate_adaptive_duration(ip)
+        else:
+            actual_duration = duration_sec
 
         success = False
         cmd_executed = ""
 
         if "linux" in self.os_type:
-            # Lệnh iptables chặn triệt để luồng traffic từ IP attacker
             cmd_executed = f"iptables -I INPUT -s {ip} -j DROP"
             try:
                 subprocess.run(["iptables", "-I", "INPUT", "-s", ip, "-j", "DROP"], check=True, capture_output=True)
                 success = True
             except Exception as e:
-                # Nếu không có quyền root, ghi log giả lập mô phỏng cho đồ án
                 success = True
                 cmd_executed += f" [Mô phỏng Lab: {str(e)}]"
         elif "windows" in self.os_type:
@@ -51,16 +78,21 @@ class SOAREnforcer:
             success = True
             cmd_executed = f"MOCK_FIREWALL_BLOCK {ip}"
 
-        self.blocked_ips[ip] = time.time() + duration_sec
+        self.blocked_ips[ip] = time.time() + actual_duration
 
-        # Lưu vào danh sách đen IOC
+        # 1. Lưu vào danh sách đen IOC nội bộ
         self._append_to_ioc_feed(ip, reason)
+
+        # 2. Xuất bản chỉ số nguy hại định dạng quốc tế STIX 2.1 & Snort Rule
+        self._export_stix_indicator(ip, reason)
+        self._export_snort_rule(ip, reason)
 
         return {
             "status": "success" if success else "failed",
-            "action": "FIREWALL_BLOCK",
+            "action": "FIREWALL_ADAPTIVE_BLOCK",
             "ip": ip,
-            "duration_sec": duration_sec,
+            "strike_count": self.strike_counts.get(ip, 1),
+            "duration_sec": actual_duration,
             "command": cmd_executed,
             "reason": reason,
         }
@@ -68,8 +100,7 @@ class SOAREnforcer:
     def tarpit_ip(self, ip: str) -> Dict:
         """
         Kỹ thuật Tarpitting (Giam lỏng & Tiêu hao tài nguyên Attacker).
-        Thay vì ngắt kết nối, chuyển hướng (redirect) kết nối của attacker sang Endlessh Tarpit.
-        Gửi dữ liệu với tốc độ rùa bò (1 byte / 10 giây) làm treo luồng quét của botnet/hydra.
+        Thay vì ngắt kết nối, chuyển hướng kết nối sang cổng Endlessh Tarpit.
         """
         if ip in self.whitelist:
             return {"status": "skipped"}
@@ -78,7 +109,6 @@ class SOAREnforcer:
         cmd_executed = ""
 
         if "linux" in self.os_type:
-            # Chuyển hướng traffic từ port 22/2222 sang port 22222 (Endlessh Tarpit Service)
             cmd_executed = f"iptables -t nat -A PREROUTING -p tcp -s {ip} --dport 2222 -j REDIRECT --to-ports 22222"
             try:
                 subprocess.run(cmd_executed.split(), capture_output=True)
@@ -118,9 +148,47 @@ class SOAREnforcer:
         return {"status": "success", "action": "UNBLOCK", "ip": ip}
 
     def _append_to_ioc_feed(self, ip: str, reason: str) -> None:
-        """Xuất bản ra file IOC Threat Feed (Chuẩn chia sẻ cho Firewall/SOC khác)."""
+        """Xuất bản ra file IOC Threat Feed dạng văn bản."""
         feed_file = "./data/threat_intel_feed.txt"
         os.makedirs(os.path.dirname(feed_file), exist_ok=True)
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         with open(feed_file, "a", encoding="utf-8") as f:
             f.write(f"{timestamp} | {ip} | REASON: {reason} | ACTION: DROP\n")
+
+    def _export_stix_indicator(self, ip: str, reason: str) -> None:
+        """Xuất bản IoC chuẩn STIX 2.1 (OASIS Open Standard) phục vụ tích hợp SIEM/MISP."""
+        stix_file = "./data/stix_indicators.json"
+        os.makedirs(os.path.dirname(stix_file), exist_ok=True)
+        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        indicator = {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": f"indicator--{ip.replace('.', '-')}-{int(time.time())}",
+            "created": timestamp,
+            "modified": timestamp,
+            "name": f"Honeynet Detected Malicious IP: {ip}",
+            "description": f"IP identified by Mini-SOC Deception: {reason}",
+            "pattern": f"[ipv4-addr:value = '{ip}']",
+            "pattern_type": "stix",
+            "valid_from": timestamp,
+            "labels": ["malicious-activity", "honeypot-detected"],
+        }
+        indicators = []
+        if os.path.exists(stix_file):
+            try:
+                with open(stix_file, "r", encoding="utf-8") as f:
+                    indicators = json.load(f)
+            except Exception:
+                indicators = []
+        indicators.append(indicator)
+        with open(stix_file, "w", encoding="utf-8") as f:
+            json.dump(indicators, f, indent=2)
+
+    def _export_snort_rule(self, ip: str, reason: str) -> None:
+        """Tự động sinh Snort/Suricata Rule để đẩy sang NIDS doanh nghiệp."""
+        snort_file = "./data/honeynet_snort_rules.rules"
+        os.makedirs(os.path.dirname(snort_file), exist_ok=True)
+        sid = 1000000 + abs(hash(ip)) % 900000
+        rule = f'alert ip {ip} any -> $HOME_NET any (msg:"[MINI-SOC SOAR] Detected Malicious Traffic from Attacker {ip} ({reason})"; sid:{sid}; rev:1;)\n'
+        with open(snort_file, "a", encoding="utf-8") as f:
+            f.write(rule)

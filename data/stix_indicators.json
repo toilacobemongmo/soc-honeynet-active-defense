@@ -1,0 +1,66 @@
+[
+  {
+    "type": "indicator",
+    "spec_version": "2.1",
+    "id": "indicator--198-51-100-25-1791783129",
+    "created": "2026-10-12T05:32:09Z",
+    "modified": "2026-10-12T05:32:09Z",
+    "name": "Honeynet Detected Malicious IP: 198.51.100.25",
+    "description": "IP identified by Mini-SOC Deception: Brute Force",
+    "pattern": "[ipv4-addr:value = '198.51.100.25']",
+    "pattern_type": "stix",
+    "valid_from": "2026-10-12T05:32:09Z",
+    "labels": [
+      "malicious-activity",
+      "honeypot-detected"
+    ]
+  },
+  {
+    "type": "indicator",
+    "spec_version": "2.1",
+    "id": "indicator--198-51-100-25-1791783149",
+    "created": "2026-10-12T05:32:29Z",
+    "modified": "2026-10-12T05:32:29Z",
+    "name": "Honeynet Detected Malicious IP: 198.51.100.25",
+    "description": "IP identified by Mini-SOC Deception: Brute Force",
+    "pattern": "[ipv4-addr:value = '198.51.100.25']",
+    "pattern_type": "stix",
+    "valid_from": "2026-10-12T05:32:29Z",
+    "labels": [
+      "malicious-activity",
+      "honeypot-detected"
+    ]
+  },
+  {
+    "type": "indicator",
+    "spec_version": "2.1",
+    "id": "indicator--185-220-101-5-1791783157",
+    "created": "2026-10-12T05:32:37Z",
+    "modified": "2026-10-12T05:32:37Z",
+    "name": "Honeynet Detected Malicious IP: 185.220.101.5",
+    "description": "IP identified by Mini-SOC Deception: Automated Brute Force Mitigation",
+    "pattern": "[ipv4-addr:value = '185.220.101.5']",
+    "pattern_type": "stix",
+    "valid_from": "2026-10-12T05:32:37Z",
+    "labels": [
+      "malicious-activity",
+      "honeypot-detected"
+    ]
+  },
+  {
+    "type": "indicator",
+    "spec_version": "2.1",
+    "id": "indicator--185-220-101-5-1791783173",
+    "created": "2026-10-12T05:32:53Z",
+    "modified": "2026-10-12T05:32:53Z",
+    "name": "Honeynet Detected Malicious IP: 185.220.101.5",
+    "description": "IP identified by Mini-SOC Deception: Automated Brute Force Mitigation",
+    "pattern": "[ipv4-addr:value = '185.220.101.5']",
+    "pattern_type": "stix",
+    "valid_from": "2026-10-12T05:32:53Z",
+    "labels": [
+      "malicious-activity",
+      "honeypot-detected"
+    ]
+  }
+]

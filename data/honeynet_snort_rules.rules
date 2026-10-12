@@ -1,0 +1,4 @@
+alert ip 198.51.100.25 any -> $HOME_NET any (msg:"[MINI-SOC SOAR] Detected Malicious Traffic from Attacker 198.51.100.25 (Brute Force)"; sid:1795944; rev:1;)
+alert ip 198.51.100.25 any -> $HOME_NET any (msg:"[MINI-SOC SOAR] Detected Malicious Traffic from Attacker 198.51.100.25 (Brute Force)"; sid:1355909; rev:1;)
+alert ip 185.220.101.5 any -> $HOME_NET any (msg:"[MINI-SOC SOAR] Detected Malicious Traffic from Attacker 185.220.101.5 (Automated Brute Force Mitigation)"; sid:1502139; rev:1;)
+alert ip 185.220.101.5 any -> $HOME_NET any (msg:"[MINI-SOC SOAR] Detected Malicious Traffic from Attacker 185.220.101.5 (Automated Brute Force Mitigation)"; sid:1502139; rev:1;)

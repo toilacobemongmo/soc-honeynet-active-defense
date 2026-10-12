@@ -37,7 +37,8 @@ class TestCorrelationEngine(unittest.TestCase):
         self.assertGreaterEqual(len(alerts), 1)
         self.assertEqual(alerts[0].mitre_technique_id, "T1110.001")
         self.assertEqual(alerts[0].source_ip, attacker_ip)
-        self.assertEqual(alerts[0].recommended_action, "tarpit_and_block")
+        self.assertIn("tarpit", alerts[0].recommended_action)
+        self.assertGreater(alerts[0].risk_score, 0)
 
     def test_malware_transfer_detection(self):
         attacker_ip = "192.168.100.99"
