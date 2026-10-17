@@ -271,10 +271,13 @@ def main():
     output_dir = "./reports"
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "BAO_CAO_DO_AN_ACTIVE_DEFENSE_SOAR_40_TRANG.docx")
+    root_output_path = os.path.abspath("./BÀI TẬP CÁ NHÂN WINDOW LINUX.docx")
 
     print(f"[*] Đang lưu tệp Word hoàn chỉnh vào: {output_path}...")
     doc.save(output_path)
-    print(f"[+] THÀNH CÔNG RỰC RỠ! Đã tạo xong báo cáo đồ án Word chuẩn OpenXML tại: {output_path}")
+    print(f"[+] Đang đồng bộ bản sao DOCX trực tiếp tại thư mục gốc: {root_output_path}...")
+    doc.save(root_output_path)
+    print(f"[+] THÀNH CÔNG RỰC RỠ! Đã tạo xong báo cáo đồ án Word chuẩn OpenXML tại:\n  1. {output_path}\n  2. {root_output_path}")
 
 
 if __name__ == "__main__":

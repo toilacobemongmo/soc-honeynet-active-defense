@@ -10,6 +10,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from core.correlation_engine import EventCorrelationEngine
+from core.distributed_honeynet import DistributedHoneynetCollector, DistributedSensorNode
 from core.honeytoken_manager import HoneytokenManager
 from core.soar_enforcer import SOAREnforcer
 from core.reverse_intel import ReverseIntelligenceEngine
@@ -95,6 +96,50 @@ class TestHoneytokenManager(unittest.TestCase):
         )
         self.assertEqual(alert["alert"], "HONEYTOKEN_TRIGGERED")
         self.assertEqual(alert["attacker_real_ip"], "203.0.113.88")
+
+
+class TestDistributedHoneynet(unittest.TestCase):
+    def setUp(self):
+        self.received_events = []
+        self.collector = DistributedHoneynetCollector(
+            host="127.0.0.1",
+            port=9999,
+            shared_secret="secret_test_key",
+            event_callback=lambda evt: self.received_events.append(evt),
+        )
+
+    def test_sensor_registration_and_heartbeat(self):
+        res = self.collector.register_or_heartbeat(
+            node_id="sensor-dmz-01",
+            subnet="192.168.10.0/24",
+            location="DMZ Gateway",
+            node_type="SSH_HIGH_INTERACTION",
+        )
+        self.assertEqual(res["status"], "acknowledged")
+        self.assertIn("sensor-dmz-01", self.collector.sensors)
+        topo = self.collector.get_topology_status()
+        self.assertEqual(len(topo), 1)
+        self.assertEqual(topo[0]["node_id"], "sensor-dmz-01")
+
+    def test_event_ingest_and_cross_node_tracking(self):
+        self.collector.register_or_heartbeat("node-1", "10.0.1.0/24", "Subnet A", "SSH")
+        self.collector.register_or_heartbeat("node-2", "10.0.2.0/24", "Subnet B", "SSH")
+
+        # Event 1 from node-1
+        self.collector.ingest_sensor_event({
+            "node_id": "node-1",
+            "event": {"eventid": "cowrie.login.failed", "src_ip": "198.51.100.77"},
+        })
+        self.assertEqual(len(self.received_events), 1)
+        self.assertEqual(self.received_events[0]["targeted_nodes_count"], 1)
+
+        # Event 2 from node-2 with same src_ip -> Cross-Subnet Scan
+        self.collector.ingest_sensor_event({
+            "node_id": "node-2",
+            "event": {"eventid": "cowrie.login.failed", "src_ip": "198.51.100.77"},
+        })
+        self.assertEqual(len(self.received_events), 2)
+        self.assertEqual(self.received_events[1]["targeted_nodes_count"], 2)
 
 
 if __name__ == "__main__":

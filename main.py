@@ -23,6 +23,7 @@ from core.mini_ssh_honeypot import MiniSSHHoneypot
 from core.payload_analyzer import PayloadAnalyzer
 from core.reverse_intel import ReverseIntelligenceEngine
 from core.soar_enforcer import SOAREnforcer
+from core.distributed_honeynet import DistributedHoneynetCollector, DistributedSensorNode
 from core.telegram_soar_bot import TelegramSOARBot
 
 
@@ -103,6 +104,29 @@ class MiniSOCActiveDefenseOrchestrator:
                 )
             except Exception as e:
                 print(f"[!] Không thể khởi tạo Canary Webhook Server trên port {self.canary_port}: {e}")
+
+        # 10. Khởi tạo Bộ điều phối Honeynet Phân tán (Distributed Honeynet Collector)
+        dist_cfg = self.config.get("distributed_honeynet", {})
+        self.enable_distributed = dist_cfg.get("enabled", True)
+        self.distributed_port = dist_cfg.get("collector_port", 9090)
+        self.distributed_collector = None
+        if self.enable_distributed:
+            try:
+                self.distributed_collector = DistributedHoneynetCollector(
+                    host=dist_cfg.get("collector_host", "0.0.0.0"),
+                    port=self.distributed_port,
+                    shared_secret=dist_cfg.get("shared_secret", "honeynet_cluster_secret_token_2026"),
+                    event_callback=self.on_cowrie_event,
+                )
+                for node in dist_cfg.get("sensor_nodes", []):
+                    self.distributed_collector.register_or_heartbeat(
+                        node_id=node.get("node_id"),
+                        subnet=node.get("subnet"),
+                        location=node.get("location"),
+                        node_type=node.get("node_type", "SSH_HONEYPOT"),
+                    )
+            except Exception as e:
+                print(f"[!] Không thể khởi tạo Distributed Honeynet Collector trên port {self.distributed_port}: {e}")
 
         print("[+] Toàn bộ phân hệ phòng thủ chủ động đã sẵn sàng hoạt động!")
 
@@ -249,6 +273,10 @@ class MiniSOCActiveDefenseOrchestrator:
         if self.canary_server:
             self.canary_server.start_background()
 
+        # 2.1. Khởi động Distributed Honeynet Collector
+        if self.distributed_collector:
+            self.distributed_collector.start_background()
+
         # 3. Khởi động Telegram SOAR Bot
         self.telegram_bot.start_polling()
 
@@ -288,6 +316,8 @@ class MiniSOCActiveDefenseOrchestrator:
             print(f"    • Live SSH Honeypot tương tác thật: ĐANG LẮNG NGHE PORT {self.honeypot_port} (0.0.0.0:{self.honeypot_port})")
         if self.canary_server:
             print(f"    • Cổng Webhook Bẫy Khử ẩn danh    : ĐANG LẮNG NGHE PORT {self.canary_port} (http://0.0.0.0:{self.canary_port})")
+        if self.distributed_collector:
+            print(f"    • Distributed Honeynet Collector  : ĐANG LẮNG NGHE PORT {self.distributed_port} (http://0.0.0.0:{self.distributed_port})")
         print("-" * 76)
         print("[+] CAC CACH KIEM THU THUC TE (LIVE DEMO) DE GUI GIANG VIEN:")
         print(f"   [1] KẾT NỐI SSH THẬT VÀO HONEYPOT (Từ cửa sổ Terminal khác):")
@@ -314,6 +344,8 @@ class MiniSOCActiveDefenseOrchestrator:
                 self.honeypot.stop()
             if self.canary_server:
                 self.canary_server.stop()
+            if self.distributed_collector:
+                self.distributed_collector.stop()
             self.listener.stop()
 
 

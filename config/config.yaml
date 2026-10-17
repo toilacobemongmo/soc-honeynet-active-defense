@@ -69,3 +69,23 @@ soar_rules:
     whitelist:
       - "127.0.0.1"
       - "192.168.1.1"
+
+# Cấu hình Mạng Bẫy Mồi Phân Tán (Distributed Honeynet Architecture)
+distributed_honeynet:
+  enabled: true
+  collector_host: "0.0.0.0"
+  collector_port: 9090
+  shared_secret: "honeynet_cluster_secret_token_2026"
+  sensor_nodes:
+    - node_id: "sensor-dmz-01"
+      subnet: "192.168.10.0/24"
+      location: "DMZ Public Facing Network"
+      node_type: "SSH_HIGH_INTERACTION"
+    - node_id: "sensor-cloud-aws-02"
+      subnet: "172.31.0.0/16"
+      location: "AWS VPC Production Subnet"
+      node_type: "CANARY_WEB_TRAP"
+    - node_id: "sensor-internal-lan-03"
+      subnet: "10.10.50.0/24"
+      location: "Internal Enterprise Office LAN"
+      node_type: "SSH_HONEYPOT_BAIT"

@@ -97,9 +97,10 @@ Empirical evaluations conducted across both controlled Red Team lab scenarios an
 | Hình 3.2 | Lưu đồ thuật toán Động cơ Tương quan Sự kiện và Ánh xạ MITRE ATT&CK | 24 |
 | Hình 3.3 | Cơ chế bẫy mồi Honeytoken và khử ẩn danh kẻ tấn công (De-anonymization) | 26 |
 | Hình 3.4 | Giao diện Thẻ cảnh báo và Bàn phím tương tác Inline Buttons của Telegram SOAR Bot | 29 |
-| Hình 5.1 | Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK) | 34 |
+| Hình 3.5 | Sơ đồ Kiến trúc Mạng Bẫy Mồi Phân tán (Distributed Honeynet Cluster Architecture) | 31 |
+| Hình 5.1 | Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit | 34 |
 | Hình 5.2 | So sánh Thời gian Phản ứng Sự cố: Quy trình Thủ công vs Tự động hóa SOAR | 36 |
-| Hình 5.3 | Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit | 38 |
+| Hình 5.3 | Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK) | 38 |
 
 
 
@@ -313,6 +314,11 @@ Dựa trên mức độ tương tác (Level of Interaction) cho phép kẻ tấn
 
 
 
+![Hình 2.1: Mô hình phân loại Honeypot theo mức độ tương tác (Low, Medium, High)](./images/hinh_2_1_phan_loai_honeypot.png)
+*Hình 2.1: Mô hình phân loại Honeypot theo mức độ tương tác (Low, Medium, High)*
+
+
+
 ## 2.2 Kiến trúc và Cơ chế hoạt động của Cowrie SSH/Telnet Honeypot
 
 
@@ -335,6 +341,11 @@ Cơ chế hoạt động bên trong của Cowrie bao gồm các thành phần c�
 
 
 5. TTY Recording & Structured JSON Logging: Mọi thao tác gõ phím của kẻ tấn công đều được ghi lại dưới định dạng TTY log (cho phép xem lại như một đoạn video tua lại bằng lệnh 'bin/playlog') và toàn bộ metadata sự kiện được xuất ra tệp tin cấu trúc 'cowrie.json' thời gian thực.
+
+
+![Hình 2.2: Kiến trúc mô phỏng hệ thống tệp và lệnh của Cowrie Honeypot](./images/hinh_2_2_kien_truc_cowrie.png)
+*Hình 2.2: Kiến trúc mô phỏng hệ thống tệp và lệnh của Cowrie Honeypot*
+
 
 
 ## 2.3 Phân tích Pháp lý và Kỹ thuật về 'Tấn công ngược' (Hack-back vs. Active Defense)
@@ -421,6 +432,11 @@ Trong một trung tâm điều hành SOC tiêu chuẩn, thời gian trung bình 
 Quy trình thủ công này thường mất 15-20 phút và dễ mắc lỗi do con người. Với SOAR, toàn bộ quy trình này được mã hóa thành các kịch bản thực thi tự động (Automated Playbooks). Khi có sự kiện đạt ngưỡng vi phạm, Playbook sẽ tự động chạy trong vài trăm mili-giây, thực hiện trinh sát, cập nhật bảng luật tường lửa và gửi thông báo tổng hợp tới thiết bị của chuyên viên, giảm MTTR xuống mức gần bằng 0.
 
 
+![Hình 2.3: Vòng đời xử lý sự cố an ninh chuẩn NIST SP 800-61 r2 tích hợp SOAR](./images/hinh_2_3_vong_doi_nist_soar.png)
+*Hình 2.3: Vòng đời xử lý sự cố an ninh chuẩn NIST SP 800-61 r2 tích hợp SOAR*
+
+
+
 ## 2.6 Kỹ thuật Giam lỏng và Tiêu hao Tài nguyên Kẻ tấn công (Connection Tarpitting)
 
 
@@ -499,6 +515,11 @@ Trong đồ án này, các kỹ thuật cốt lõi sau được nhận diện v�
 • Tầng 5: Lớp Giám sát & Điều khiển Tương tác 2 Chiều (Bidirectional Command & Monitoring Layer) - Cung cấp giao diện trực quan thông qua Telegram SOAR Bot với các nút bấm tương tác (Inline Buttons), cho phép chuyên viên SOC can thiệp và kích hoạt các hành động phòng thủ chỉ bằng một chạm.
 
 
+![Hình 3.1: Sơ đồ kiến trúc tổng thể 5 phân lớp của Hệ sinh thái Active Defense & SOAR](./images/hinh_3_1_kien_truc_5_phan_lop.png)
+*Hình 3.1: Sơ đồ kiến trúc tổng thể 5 phân lớp của Hệ sinh thái Active Defense & SOAR*
+
+
+
 ## 3.2 Thiết kế Tầng Thu thập & Streaming Sự kiện thời gian thực (Cowrie Event Collector)
 
 
@@ -548,6 +569,11 @@ Bên cạnh đó, Correlation Engine tự động phân loại các sự kiện 
 
 
 
+![Hình 3.2: Lưu đồ thuật toán Động cơ Tương quan Sự kiện và Ánh xạ MITRE ATT&CK](./images/02_correlation_engine_flowchart.png)
+*Hình 3.2: Lưu đồ thuật toán Động cơ Tương quan Sự kiện và Ánh xạ MITRE ATT&CK*
+
+
+
 ## 3.4 Thiết kế Phân hệ Trinh sát ngược Kẻ tấn công (Reverse Intelligence Engine)
 
 
@@ -594,6 +620,11 @@ Hệ thống tự động sinh ra và cài cắm 3 lớp tài liệu mồi nhử
 
 
 Nguyên lý Khử ẩn danh: Khi kẻ tấn công đánh cắp các tệp tin này và mang về máy tính cá nhân để khai thác, việc click vào đường link hoặc chạy lệnh sẽ kích hoạt một Webhook HTTP Request gửi thẳng từ máy thật của hacker về máy chủ SOC. Lúc này, toàn bộ lớp vỏ bọc VPN/Proxy mà hacker dùng để SSH vào Honeypot trước đó sẽ bị vô hiệu hóa hoàn toàn, để lộ địa chỉ IP thật và thông số hệ thống của thủ phạm.
+
+
+![Hình 3.3: Cơ chế bẫy mồi Honeytoken và khử ẩn danh kẻ tấn công (De-anonymization)](./images/03_deanonymization_sequence.png)
+*Hình 3.3: Cơ chế bẫy mồi Honeytoken và khử ẩn danh kẻ tấn công (De-anonymization)*
+
 
 
 ## 3.6 Thiết kế Phân hệ Phân tích và Cách ly Mã độc (Malware Sandbox & Staging Pipeline)
@@ -654,6 +685,52 @@ Một điểm nhấn quan trọng giúp đồ án vượt xa các ứng dụng g
 
 
 Cơ chế này giúp chuyên viên SOC có thể điều hành tác chiến từ bất kỳ đâu thông qua điện thoại thông minh mà không cần phải mở máy tính và đăng nhập vào máy chủ.
+
+
+![Hình 3.4: Giao diện Thẻ cảnh báo và Bàn phím tương tác Inline Buttons của Telegram SOAR Bot](./images/hinh_3_4_telegram_bot_interface.png)
+*Hình 3.4: Giao diện Thẻ cảnh báo và Bàn phím tương tác Inline Buttons của Telegram SOAR Bot*
+
+
+
+## 3.9 Thiết kế Kiến trúc Mạng Bẫy Mồi Phân tán (Distributed Honeynet Architecture)
+
+
+Trong môi trường hạ tầng mạng doanh nghiệp hiện đại hoặc mô hình điện toán đám mây lai (Hybrid Cloud), việc triển khai Honeypot đơn điểm (Single Honeypot Instance) bộc lộ hạn chế lớn về tầm nhìn chiến thuật (tactical visibility). Nếu chỉ đặt bẫy tại một địa chỉ IP duy nhất, hệ thống không thể giám sát được các kỹ thuật di chuyển ngang (Lateral Movement) hoặc hoạt động dò quét trinh sát phân tán (Cross-Subnet Probing). Nhằm khắc phục triệt để rào cản này, kiến trúc Honeynet Phân tán (Distributed Honeynet Architecture) được thiết kế và tích hợp trực tiếp vào nhân điều phối.
+
+
+Mô hình bao gồm các thành phần cốt lõi được chuẩn hóa theo chuẩn kiến trúc mở:
+
+
+1. Cụm Cảm biến Biên Đa phân vùng (Distributed Edge Sensor Nodes): Các tác tử cảm biến (Sensor Agents) được phân bổ tại các vị trí nhạy cảm trong hệ thống mạng, bao gồm phân vùng DMZ công khai, phân vùng Đám mây AWS VPC và phân vùng Mạng nội bộ Doanh nghiệp (Corporate LAN). Mỗi cảm biến được định danh duy nhất (node_id) và gán nhãn phân vùng mạng (subnet tag).
+
+
+2. Giao thức Truyền tin & Xác thực Biên an toàn (Secure REST Ingestion Protocol): Toàn bộ dữ liệu nhật ký sự kiện và trạng thái sức khỏe từ các Cảm biến Biên được gửi về Máy chủ Thu thập Trung tâm (Collector Server) thông qua giao thức HTTPS REST API tại cổng 9090. Kênh giao tiếp được bảo vệ nghiêm ngặt bằng Header xác thực 'X-Honeynet-Token' với cơ chế so khớp băm an toàn hmac.compare_digest(), ngăn chặn hoàn toàn nguy cơ giả mạo cảm biến (Sensor Spoofing).
+
+
+3. Cơ chế Giám sát Sức khỏe & Chống mất mát Dữ liệu (Heartbeat & Resiliency): Các cảm biến duy trì nhịp tim (Heartbeat) định kỳ 30 giây gửi về Collector. Nếu một cảm biến mất kết nối quá thời gian quy định, hệ thống tự động ghi nhận trạng thái OFFLINE và gửi thông báo cảnh báo về SOC. Phía cảm biến hỗ trợ hàng đợi đệm (Event Buffer Queue) giúp lưu trữ tạm thời sự kiện khi mạng gián đoạn và tự động đồng bộ lại khi kết nối phục hồi.
+
+
+4. Thuật toán Tương quan Dò quét Xuyên Phân vùng (Cross-Subnet Probing Correlation): Khi một địa chỉ IP nguồn thực hiện dò quét hoặc tương tác với từ 2 phân vùng mạng khác nhau trở lên, Correlation Engine lập tức kích hoạt Luật tương quan đặc biệt 'ALT-DISTRIB' tương ứng với Kỹ thuật MITRE ATT&CK T1046 (Network Service Discovery: Distributed Multi-Node Scanning), tự động cộng dồn +35 điểm rủi ro và kích hoạt Playbook ngăn chặn đồng loạt trên toàn bộ các tường lửa biên.
+
+
+![Hình 3.5: Sơ đồ Kiến trúc Mạng Bẫy Mồi Phân tán (Distributed Honeynet Cluster Architecture)](./images/so_do_honeynet_phan_tan_bw.png)
+*Hình 3.5: Sơ đồ Kiến trúc Mạng Bẫy Mồi Phân tán (Distributed Honeynet Cluster Architecture)*
+
+
+
+**Bảng 3.2: Danh mục Phân bổ Cảm biến Biên và Chiến lược Mồi nhử trong Cụm Honeynet Phân tán**
+
+| Mã Node Cảm biến | Phân vùng Triển khai | Dải mạng Subnet | Dịch vụ Bẫy mồi Hoạt động | Loại Mồi nhử Honeytoken |
+| --- | --- | --- | --- | --- |
+| sensor-dmz-01 | DMZ Public Web | 192.168.10.0/24 | Cowrie SSH (Port 2222) + HTTP Canary (8080) | /root/.bash_history, db_backup.sql |
+| sensor-cloud-aws-02 | AWS Cloud VPC | 10.0.1.0/24 | Decoy SSH Shell + Fake Cloud Admin Portal | /root/.aws/credentials (AWS Canary IAM) |
+| sensor-internal-lan-03 | Corporate Internal LAN | 172.16.0.0/16 | Decoy Lateral Port + Fake SMB File Share | Active Directory Decoy Admin SPN |
+
+
+
+> [!NOTE]
+> **📌 GHI CHÚ HỌC THUẬT: ĐỘT PHÁ CỦA MÔ HÌNH HONEYNET PHÂN TÁN TRONG TÁC CHIẾN ACTIVE DEFENSE & SOAR**
+> Kiến trúc Honeynet Phân tán cho phép hệ thống mở rộng từ mô hình bẫy mồi phòng thí nghiệm đơn lẻ thành mạng lưới cảm biến đan xen (Sensor Mesh) cấp doanh nghiệp. Điểm đột phá kỹ thuật nằm ở cơ chế tương quan Cross-Subnet: Kẻ tấn công cho dù sử dụng kỹ thuật trinh sát phân tán chậm (Slow-and-Low Scan) để lẩn tránh IDS/IPS truyền thống vẫn sẽ bị vạch trần ngay khi chạm vào 2 bẫy mồi ở các phân vùng mạng khác nhau.
 
 
 ---
@@ -1017,8 +1094,8 @@ Thay vì ngắt kết nối bằng DROP, toàn bộ gói tin TCP tới cổng SS
 Kết quả đo lường: Kẻ tấn công bị giam giữ liên tục 20 luồng socket trong trạng thái ESTABLISHED suốt hơn 45 phút. Tốc độ thử mật khẩu của đối phương bị sụt giảm từ 250 lần/phút xuống còn 0 lần/phút mà tiến trình quét của hacker không hề báo lỗi, làm cạn kiệt hoàn toàn bảng socket của botnet.
 
 
-![Hình 5.3: Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit](./images/tarpit_effectiveness.png)
-*Hình 5.3: Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit*
+![Hình 5.1: Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit](./images/tarpit_effectiveness.png)
+*Hình 5.1: Đo lường Hiệu quả Làm chậm & Triệt tiêu Tấn công của Cơ chế Tarpit*
 
 
 
@@ -1067,8 +1144,8 @@ Sau khi triển khai thử nghiệm Honeypot trên một máy chủ đám mây c
 • Số lượng mã độc tải lên được bẫy ghi lại: 23 mẫu nhị phân ELF và tập lệnh bash (trong đó 19 mẫu là biến thể của Mirai botnet).
 
 
-![Hình 5.1: Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK)](./images/mitre_distribution.png)
-*Hình 5.1: Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK)*
+![Hình 5.3: Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK)](./images/mitre_distribution.png)
+*Hình 5.3: Biểu đồ phân bố Kỹ thuật Tấn công ghi nhận trên Cowrie (Chuẩn MITRE ATT&CK)*
 
 
 

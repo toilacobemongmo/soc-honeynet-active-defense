@@ -59,6 +59,9 @@ class EventCorrelationEngine:
         # 2. Session Forensics History for Terminal Replay
         self.session_recordings: Dict[str, List[Dict]] = defaultdict(list)
 
+        # 3. Distributed Honeynet Tracking
+        self._reported_cross_scans: set = set()
+
     def calculate_risk_delta(self, ttp_type: str, weight: int = 10) -> int:
         """Tính điểm rủi ro gia tăng theo từng hành vi tấn công."""
         scoring_table = {
@@ -69,6 +72,7 @@ class EventCorrelationEngine:
             "MALWARE_DOWNLOAD": 45,
             "HONEYTOKEN_ACCESS": 50,
             "TOR_EXIT_NODE": 15,
+            "CROSS_SUBNET_SCAN": 35,
         }
         return scoring_table.get(ttp_type, weight)
 
@@ -107,6 +111,32 @@ class EventCorrelationEngine:
         src_ip = event.get("src_ip", "0.0.0.0")
         timestamp = event.get("timestamp", datetime.now(timezone.utc).isoformat())
         now = time.time()
+
+        # 0. Phát hiện Quét diện rộng xuyên phân vùng mạng (MITRE ATT&CK T1046 - Cross-Subnet Honeynet Scan)
+        targeted_nodes = event.get("targeted_nodes_count", 0)
+        sensor_meta = event.get("sensor_metadata", {})
+        if targeted_nodes >= 2 and src_ip not in self._reported_cross_scans:
+            self._reported_cross_scans.add(src_ip)
+            delta = self.calculate_risk_delta("CROSS_SUBNET_SCAN")
+            total_risk = self.update_ip_risk(src_ip, "T1046", "Cross-Subnet Network Scanning", delta)
+            return ThreatAlert(
+                alert_id=f"ALT-DISTRIB-{int(now)}",
+                rule_name="Dò quét phân tán xuyên phân vùng mạng (Cross-Subnet Honeynet Recon)",
+                mitre_technique_id="T1046",
+                mitre_technique_name="Network Service Discovery: Distributed Multi-Node Scanning",
+                severity="HIGH",
+                source_ip=src_ip,
+                timestamp=timestamp,
+                details={
+                    "sensor_id": sensor_meta.get("node_id", "cluster-node"),
+                    "subnet": sensor_meta.get("subnet", "unknown"),
+                    "nodes_targeted_count": targeted_nodes,
+                    "dynamic_risk_score": total_risk,
+                    "escalation_tier": self.ip_risk_profiles[src_ip]["escalation_level"],
+                },
+                recommended_action="tarpit_and_block",
+                risk_score=total_risk,
+            )
 
         # 1. Phát hiện Tấn công Dò quét mật khẩu (MITRE ATT&CK T1110 - Brute Force)
         if eventid == "cowrie.login.failed":
